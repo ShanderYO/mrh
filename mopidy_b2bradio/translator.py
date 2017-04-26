@@ -1,59 +1,119 @@
-from __future__ import unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
-import hashlib
+import os
 
-from mopidy.models import Ref
+from mopidy import models
+
+from . import Extension
+
+try:
+    from urllib.parse import quote_from_bytes, unquote_to_bytes
+except ImportError:
+    import urllib
+
+    def quote_from_bytes(bytes, safe=b'/'):
+        # Python 3 returns Unicode string
+        return urllib.quote(bytes, safe).decode('utf-8')
+
+    def unquote_to_bytes(string):
+        if isinstance(string, bytes):
+            return urllib.unquote(string)
+        else:
+            return urllib.unquote(string.encode('utf-8'))
+
+try:
+    from urllib.parse import urlsplit, urlunsplit
+except ImportError:
+    from urlparse import urlsplit, urlunsplit
 
 
-def album_to_ref(album):
-    """Convert a mopidy album to a mopidy ref."""
-    name = ''
-    for artist in album.artists:
-        if len(name) > 0:
-            name += ', '
-        name += artist.name
-    if (len(name)) > 0:
-        name += ' - '
-    if album.name:
-        name += album.name
+try:
+    from os import fsencode, fsdecode
+except ImportError:
+    import sys
+
+    # no 'surrogateescape' in Python 2; 'replace' for backward compatibility
+    def fsencode(filename, encoding=sys.getfilesystemencoding()):
+        return filename.encode(encoding, 'replace')
+
+    def fsdecode(filename, encoding=sys.getfilesystemencoding()):
+        return filename.decode(encoding, 'replace')
+
+
+def path_to_uri(path, scheme=Extension.ext_name):
+    """Convert file path to URI."""
+    assert isinstance(path, bytes), 'Mopidy paths should be bytes'
+    uripath = quote_from_bytes(os.path.normpath(path))
+    return urlunsplit((scheme, None, uripath, None, None))
+
+
+def uri_to_path(uri):
+    """Convert URI to file path."""
+    # TODO: decide on Unicode vs. bytes for URIs
+    return unquote_to_bytes(urlsplit(uri).path)
+
+
+def name_from_path(path):
+    """Extract name from file path."""
+    name, _ = os.path.splitext(os.path.basename(path))
+    try:
+        return fsdecode(name)
+    except UnicodeError:
+        return None
+
+
+def path_from_name(name, ext=None, sep='|'):
+    """Convert name with optional extension to file path."""
+    if ext:
+        return fsencode(name.replace(os.sep, sep) + ext)
     else:
-        name += 'Unknown Album'
-    return Ref.directory(uri=album.uri, name=name)
+        return fsencode(name.replace(os.sep, sep))
 
 
-def artist_to_ref(artist):
-    """Convert a mopidy artist to a mopidy ref."""
-    if artist.name:
-        name = artist.name
-    else:
-        name = 'Unknown artist'
-    return Ref.directory(uri=artist.uri, name=name)
+def path_to_ref(path):
+    return models.Ref.playlist(
+        uri=path_to_uri(path),
+        name=name_from_path(path)
+    )
 
 
-def track_to_ref(track, with_track_no=False):
-    """Convert a mopidy track to a mopidy ref."""
-    if with_track_no and track.track_no > 0:
-        name = '%d - ' % track.track_no
-    else:
-        name = ''
-    for artist in track.artists:
-        if len(name) > 0:
-            name += ', '
-        name += artist.name
-    if (len(name)) > 0:
-        name += ' - '
-    name += track.name
-    return Ref.track(uri=track.uri, name=name)
+def load_items(fp, basedir):
+    refs = []
+    name = None
+    for line in filter(None, (line.strip() for line in fp)):
+        if line.startswith('#'):
+            if line.startswith('#EXTINF:'):
+                name = line.partition(',')[2]
+            continue
+        elif not urlsplit(line).scheme:
+            path = os.path.join(basedir, fsencode(line))
+            if not name:
+                name = name_from_path(path)
+            uri = path_to_uri(path, scheme='file')
+        else:
+            uri = line  # do *not* extract name from (stream?) URI path
+        refs.append(models.Ref.track(uri=uri, name=name))
+        name = None
+    return refs
 
 
-def get_images(song):
-    if 'albumArtRef' in song:
-        return [art_ref['url']
-                for art_ref in song['albumArtRef']
-                if 'url' in art_ref]
+def dump_items(items, fp):
+    if any(item.name for item in items):
+        print('#EXTM3U', file=fp)
+    for item in items:
+        if item.name:
+            print('#EXTINF:-1,%s' % item.name, file=fp)
+        # TODO: convert file URIs to (relative) paths?
+        if isinstance(item.uri, bytes):
+            print(item.uri.decode('utf-8'), file=fp)
+        else:
+            print(item.uri, file=fp)
 
-    return []
 
-
-def create_id(u):
-    return hashlib.md5(u.encode('utf-8')).hexdigest()
+def playlist(path, items=[], mtime=None):
+    return models.Playlist(
+        uri=path_to_uri(path),
+        name=name_from_path(path),
+        tracks=[models.Track(uri=item.uri, name=item.name) for item in items],
+        last_modified=(int(mtime * 1000) if mtime else None)
+    )

@@ -12,28 +12,27 @@ def get_version(filename):
 
 
 setup(
-    name='Mopidy-GMusic',
-    version=get_version('mopidy_gmusic/__init__.py'),
-    url='https://github.com/mopidy/mopidy-gmusic',
-    license='Apache License, Version 2.0',
-    author='Ronald Hecht',
-    author_email='ronald.hecht@gmx.de',
-    description='Mopidy extension for playing music from Google Play Music',
+    name='Mopidy-B2bradio',
+    version=get_version('mopidy_b2bradio/__init__.py'),
+    url='https://bitbucket.org/Muzis/mopidy_b2bradio',
+    license='Apache License, Version 0.1',
+    author='Aleksey Sharf',
+    author_email='a.sharf@muzis.ru',
+    description='Mopidy extension for playing music from b2bradio service',
     long_description=open('README.rst').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
     include_package_data=True,
     install_requires=[
         'setuptools',
-        'Mopidy >= 1.0',
+        'Mopidy >= 2.1',
         'Pykka >= 1.1',
-        'gmusicapi >= 10.1',
         'requests >= 2.0',
         'cachetools >= 1.0',
     ],
     entry_points={
         'mopidy.ext': [
-            'gmusic = mopidy_gmusic:GMusicExtension',
+            'b2bradio = mopidy_b2bradio:B2bradioExtension',
         ],
     },
     classifiers=[
