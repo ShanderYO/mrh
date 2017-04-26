@@ -115,9 +115,6 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         else:
             return translator.playlist(path, items, mtime)
 
-    def refresh(self):
-        pass  # nothing to do
-
     def save(self, playlist):
         path = translator.uri_to_path(playlist.uri)
         name = translator.name_from_path(path)
@@ -149,37 +146,6 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         else:
             return io.open(path, mode, encoding=encoding, errors='replace')
 
-
-
-from mopidy.models import Playlist, Ref
-
-
-class GMusicPlaylistsProvider(backend.PlaylistsProvider):
-
-    def __init__(self, *args, **kwargs):
-        super(GMusicPlaylistsProvider, self).__init__(*args, **kwargs)
-        self._radio_stations_as_playlists = (
-            self.backend.config['gmusic']['radio_stations_as_playlists'])
-        self._radio_stations_count = (
-            self.backend.config['gmusic']['radio_stations_count'])
-        self._radio_tracks_count = (
-            self.backend.config['gmusic']['radio_tracks_count'])
-        self._playlists = {}
-
-    def as_list(self):
-        refs = [
-            Ref.playlist(uri=pl.uri, name=pl.name)
-            for pl in self._playlists.values()]
-        return sorted(refs, key=operator.attrgetter('name'))
-
-    def get_items(self, uri):
-        playlist = self._playlists.get(uri)
-        if playlist is None:
-            return None
-        return [Ref.track(uri=t.uri, name=t.name) for t in playlist.tracks]
-
-    def lookup(self, uri):
-        return self._playlists.get(uri)
 
     def refresh(self):
         playlists = {}
@@ -240,35 +206,4 @@ class GMusicPlaylistsProvider(backend.PlaylistsProvider):
                                           tracks=tracks)
 
         l = len(playlists)
-        logger.info('Loaded %d playlists from Google Music', len(playlists))
-
-        # load radios as playlists
-        if self._radio_stations_as_playlists:
-            logger.info('Starting to loading radio stations')
-            stations = self.backend.session.get_radio_stations(
-                self._radio_stations_count)
-            for station in stations:
-                tracks = []
-                tracklist = self.backend.session.get_station_tracks(
-                    station['id'], self._radio_tracks_count)
-                for track in tracklist:
-                    tracks.append(
-                        self.backend.library._to_mopidy_track(track))
-                uri = 'gmusic:playlist:' + station['id']
-                playlists[uri] = Playlist(uri=uri,
-                                          name=station['name'],
-                                          tracks=tracks)
-            logger.info('Loaded %d radios from Google Music',
-                        len(playlists) - l)
-
-        self._playlists = playlists
-        backend.BackendListener.send('playlists_loaded')
-
-    def create(self, name):
-        raise NotImplementedError
-
-    def delete(self, uri):
-        raise NotImplementedError
-
-    def save(self, playlist):
-        raise NotImplementedError
+        logger.info('Loaded %d playlists', len(playlists))

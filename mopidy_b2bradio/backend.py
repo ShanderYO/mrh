@@ -25,7 +25,7 @@ class B2bradioBackend(
 
         self.config = config
         self._refresh_playlists_rate = \
-            config['gmusic']['refresh_playlists'] * 60.0
+            config['b2bradio']['refresh_playlists'] * 6.0
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
@@ -48,7 +48,7 @@ class B2bradioBackend(
     def _refresh_playlists(self):
         with self._playlist_lock:
             t0 = round(time.time())
-            logger.info('Start refreshing Google Music playlists')
+            logger.info('Start refreshing playlists')
             self.playlists.refresh()
             t = round(time.time()) - t0
-            logger.info('Finished refreshing Google Music playlists in %ds', t)
+            logger.info('Finished refreshing playlists in %ds', t)
