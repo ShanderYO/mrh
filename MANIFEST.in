@@ -2,7 +2,7 @@ include .travis.yml
 include LICENSE
 include MANIFEST.in
 include README.rst
-include b2bradio-mopidy-extension/ext.conf
+include mopidy_b2bradio/ext.conf
 include tox.ini
 
 recursive-include tests *.py

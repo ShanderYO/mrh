@@ -13,8 +13,8 @@ def get_version(filename):
 
 setup(
     name='Mopidy-B2bradio',
-    version=get_version('b2bradio-mopidy-extension/__init__.py'),
-    url='https://bitbucket.org/Muzis/b2bradio-mopidy-extension',
+    version=get_version('mopidy_b2bradio/__init__.py'),
+    url='https://Muzis@bitbucket.org/Muzis/mopidy_b2bradio.git',
     license='Apache License, Version 0.1',
     author='Aleksey Sharf',
     author_email='a.sharf@muzis.ru',
@@ -32,7 +32,7 @@ setup(
     ],
     entry_points={
         'mopidy.ext': [
-            'b2bradio = b2bradio-mopidy-extension:B2bradioExtension',
+            'b2bradio = mopidy_b2bradio:B2bradioExtension',
         ],
     },
     classifiers=[
