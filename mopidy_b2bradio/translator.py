@@ -4,8 +4,6 @@ import os
 
 from mopidy import models
 
-from . import Extension
-
 try:
     from urllib.parse import quote_from_bytes, unquote_to_bytes
 except ImportError:
@@ -40,7 +38,7 @@ except ImportError:
         return filename.decode(encoding, 'replace')
 
 
-def path_to_uri(path, scheme=Extension.ext_name):
+def path_to_uri(path, scheme='b2bradio'):
     """Convert file path to URI."""
     assert isinstance(path, bytes), 'Mopidy paths should be bytes'
     uripath = quote_from_bytes(os.path.normpath(path))

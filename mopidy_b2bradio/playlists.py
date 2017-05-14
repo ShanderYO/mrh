@@ -10,7 +10,7 @@ import tempfile
 
 from mopidy import backend
 
-from . import Extension, translator
+from . import translator
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +55,11 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
     def __init__(self, backend, config):
         super(B2bradioPlaylistsProvider, self).__init__(backend)
 
-        ext_config = config[Extension.ext_name]
-        if ext_config['playlists_dir'] is None:
-            self._playlists_dir = Extension.get_data_dir(config)
-        else:
-            self._playlists_dir = ext_config['playlists_dir']
+        ext_config = config['b2bradio']
+        # if ext_config['playlists_dir'] is None:
+        #     self._playlists_dir = Extension.get_data_dir(config)
+        # else:
+        self._playlists_dir = ext_config['playlists_dir']
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
         self._default_encoding = ext_config['default_encoding']
         self._default_extension = ext_config['default_extension']
@@ -155,8 +155,9 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         # will not.
         library_tracks = {}
         for track in self.backend.session.get_all_songs():
-            mopidy_track = self.backend.library._to_mopidy_track(track)
-            library_tracks[track['id']] = mopidy_track
+            pass
+            # mopidy_track = self.backend.library._to_mopidy_track(track)
+            # library_tracks[track['id']] = mopidy_track
 
         # add thumbs up playlist
         tracks = []

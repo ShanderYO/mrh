@@ -17,20 +17,18 @@ logger = logging.getLogger(__name__)
 
 class B2bradioBackend(
         pykka.ThreadingActor, backend.Backend):
-    uri_schemes = ['m3u']
+    uri_schemes = ['b2bradio']
 
     def __init__(self, config, audio):
         super(B2bradioBackend, self).__init__()
-        self.playlists = playlists.M3UPlaylistsProvider(self, config)
 
         self.config = config
-        self._refresh_playlists_rate = \
-            config['b2bradio']['refresh_playlists'] * 6.0
+        self._refresh_playlists_rate = 6.0
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
-        self.playlists = B2bradioPlaylistsProvider(backend=self)
+        self.playlists = B2bradioPlaylistsProvider(self, config)
 
     def on_start(self):
         # schedule playlist refresh as desired
