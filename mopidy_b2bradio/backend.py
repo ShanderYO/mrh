@@ -12,6 +12,8 @@ import pykka
 from .playlists import B2bradioPlaylistsProvider
 from .repeating_timer import RepeatingTimer
 
+from .mpd_client import Client
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +25,7 @@ class B2bradioBackend(
         super(B2bradioBackend, self).__init__()
 
         self.config = config
-        self._refresh_playlists_rate = 6.0
+        self._refresh_playlists_rate = 10.0
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
@@ -31,6 +33,9 @@ class B2bradioBackend(
         self.playlists = B2bradioPlaylistsProvider(self, config)
 
     def on_start(self):
+        logger.info('Start mopidy!!!')
+        client = Client()
+        client.play()
         # schedule playlist refresh as desired
         if self._refresh_playlists_rate > 0:
             self._refresh_playlists_timer = RepeatingTimer(
@@ -42,6 +47,9 @@ class B2bradioBackend(
         if self._refresh_playlists_timer:
             self._refresh_playlists_timer.cancel()
             self._refresh_playlists_timer = None
+
+    def load_playlist(self):
+        pass
 
     def _refresh_playlists(self):
         with self._playlist_lock:

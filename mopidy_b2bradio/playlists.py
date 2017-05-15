@@ -154,57 +154,56 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         # will be included with the playlist entry, but uploaded music
         # will not.
         library_tracks = {}
-        for track in self.backend.session.get_all_songs():
-            pass
+        # for track in self.backend.session.get_all_songs():
             # mopidy_track = self.backend.library._to_mopidy_track(track)
             # library_tracks[track['id']] = mopidy_track
 
         # add thumbs up playlist
         tracks = []
-        for track in self.backend.session.get_promoted_songs():
-            tracks.append(self.backend.library._to_mopidy_track(track))
+        # for track in self.backend.session.get_promoted_songs():
+        #     tracks.append(self.backend.library._to_mopidy_track(track))
 
-        if len(tracks) > 0:
-            uri = 'gmusic:playlist:promoted'
-            playlists[uri] = Playlist(uri=uri, name='Promoted', tracks=tracks)
+        # if len(tracks) > 0:
+        #     uri = 'gmusic:playlist:promoted'
+        #     playlists[uri] = Playlist(uri=uri, name='Promoted', tracks=tracks)
 
         # load user playlists
-        for playlist in self.backend.session.get_all_user_playlist_contents():
-            tracks = []
-            for entry in playlist['tracks']:
-                if entry['deleted']:
-                    continue
+        # for playlist in self.backend.session.get_all_user_playlist_contents():
+        #     tracks = []
+        #     for entry in playlist['tracks']:
+        #         if entry['deleted']:
+        #             continue
 
-                if entry['source'] == u'1':
-                    tracks.append(library_tracks[entry['trackId']])
-                else:
-                    entry['track']['id'] = entry['trackId']
-                    tracks.append(self.backend.library._to_mopidy_track(
-                        entry['track']))
+        #         if entry['source'] == u'1':
+        #             tracks.append(library_tracks[entry['trackId']])
+        #         else:
+        #             entry['track']['id'] = entry['trackId']
+        #             tracks.append(self.backend.library._to_mopidy_track(
+        #                 entry['track']))
 
-            uri = 'gmusic:playlist:' + playlist['id']
-            playlists[uri] = Playlist(uri=uri,
-                                      name=playlist['name'],
-                                      tracks=tracks)
+        #     uri = 'gmusic:playlist:' + playlist['id']
+        #     playlists[uri] = Playlist(uri=uri,
+        #                               name=playlist['name'],
+        #                               tracks=tracks)
 
         # load shared playlists
-        for playlist in self.backend.session.get_all_playlists():
-            if playlist.get('type') == 'SHARED':
-                tracks = []
-                tracklist = self.backend.session.get_shared_playlist_contents(
-                    playlist['shareToken'])
-                for entry in tracklist:
-                    if entry['source'] == u'1':
-                        tracks.append(library_tracks[entry['trackId']])
-                    else:
-                        entry['track']['id'] = entry['trackId']
-                        tracks.append(self.backend.library._to_mopidy_track(
-                            entry['track']))
+        # for playlist in self.backend.session.get_all_playlists():
+        #     if playlist.get('type') == 'SHARED':
+        #         tracks = []
+        #         tracklist = self.backend.session.get_shared_playlist_contents(
+        #             playlist['shareToken'])
+        #         for entry in tracklist:
+        #             if entry['source'] == u'1':
+        #                 tracks.append(library_tracks[entry['trackId']])
+        #             else:
+        #                 entry['track']['id'] = entry['trackId']
+        #                 tracks.append(self.backend.library._to_mopidy_track(
+        #                     entry['track']))
 
-                uri = 'gmusic:playlist:' + playlist['id']
-                playlists[uri] = Playlist(uri=uri,
-                                          name=playlist['name'],
-                                          tracks=tracks)
+        #         uri = 'gmusic:playlist:' + playlist['id']
+        #         playlists[uri] = Playlist(uri=uri,
+        #                                   name=playlist['name'],
+        #                                   tracks=tracks)
 
-        l = len(playlists)
-        logger.info('Loaded %d playlists', len(playlists))
+        # l = len(playlists)
+        # logger.info('Loaded %d playlists', len(playlists))

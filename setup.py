@@ -29,6 +29,7 @@ setup(
         'Pykka >= 1.1',
         'requests >= 2.0',
         'cachetools >= 1.0',
+        'python-mpd2 > 0.5',
     ],
     entry_points={
         'mopidy.ext': [
