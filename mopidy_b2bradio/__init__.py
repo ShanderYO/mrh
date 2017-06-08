@@ -31,6 +31,6 @@ class B2bradioExtension(ext.Extension):
 
     def setup(self, registry):
         from .backend import B2bradioBackend
-        # from .scrobbler_frontend import GMusicScrobblerFrontend
+        from .core_event import B2bradioCoreEvent
         registry.add('backend', B2bradioBackend)
-        # registry.add('frontend', GMusicScrobblerFrontend)
+        registry.add('frontend', B2bradioCoreEvent)

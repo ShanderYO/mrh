@@ -25,17 +25,18 @@ class B2bradioBackend(
         super(B2bradioBackend, self).__init__()
 
         self.config = config
-        self._refresh_playlists_rate = 10.0
+        self._refresh_playlists_rate = 5.0
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
         self.playlists = B2bradioPlaylistsProvider(self, config)
+        self.client = None
 
     def on_start(self):
         logger.info('Start mopidy!!!')
-        client = Client()
-        client.play()
+        self.playlists.refresh()
+        self.client = Client()
         # schedule playlist refresh as desired
         if self._refresh_playlists_rate > 0:
             self._refresh_playlists_timer = RepeatingTimer(
@@ -52,6 +53,7 @@ class B2bradioBackend(
         pass
 
     def _refresh_playlists(self):
+        logger.info(self.client.get_status())
         with self._playlist_lock:
             t0 = round(time.time())
             logger.info('Start refreshing playlists')

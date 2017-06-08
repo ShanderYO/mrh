@@ -6,7 +6,7 @@ import locale
 import logging
 import operator
 import os
-import tempfile
+import urllib
 
 from mopidy import backend
 
@@ -23,33 +23,6 @@ def log_environment_error(message, error):
     logger.error('%s: %s', message, strerror)
 
 
-@contextlib.contextmanager
-def replace(path, mode='w+b', encoding=None, errors=None):
-    try:
-        (fd, tempname) = tempfile.mkstemp(dir=os.path.dirname(path))
-    except TypeError:
-        # Python 3 requires dir to be of type str until v3.5
-        import sys
-        path = path.decode(sys.getfilesystemencoding())
-        (fd, tempname) = tempfile.mkstemp(dir=os.path.dirname(path))
-    try:
-        fp = io.open(fd, mode, encoding=encoding, errors=errors)
-    except:
-        os.remove(tempname)
-        os.close(fd)
-        raise
-    try:
-        yield fp
-        fp.flush()
-        os.fsync(fd)
-        os.rename(tempname, path)
-    except:
-        os.remove(tempname)
-        raise
-    finally:
-        fp.close()
-
-
 class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
 
     def __init__(self, backend, config):
@@ -64,146 +37,33 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         self._default_encoding = ext_config['default_encoding']
         self._default_extension = ext_config['default_extension']
 
-    def as_list(self):
-        result = []
-        for entry in os.listdir(self._playlists_dir):
-            if not entry.endswith((b'.m3u', b'.m3u8')):
-                continue
-            elif not os.path.isfile(self._abspath(entry)):
-                continue
-            else:
-                result.append(translator.path_to_ref(entry))
-        result.sort(key=operator.attrgetter('name'))
-        return result
-
-    def create(self, name):
-        path = translator.path_from_name(name.strip(), self._default_extension)
+    def check_playlist(self, infile):
         try:
-            with self._open(path, 'w'):
-                pass
-            mtime = os.path.getmtime(self._abspath(path))
-        except EnvironmentError as e:
-            log_environment_error('Error creating playlist %s' % name, e)
-        else:
-            return translator.playlist(path, [], mtime)
-
-    def delete(self, uri):
-        path = translator.uri_to_path(uri)
-        try:
-            os.remove(self._abspath(path))
-        except EnvironmentError as e:
-            log_environment_error('Error deleting playlist %s' % uri, e)
-
-    def get_items(self, uri):
-        path = translator.uri_to_path(uri)
-        try:
-            with self._open(path, 'r') as fp:
-                items = translator.load_items(fp, self._base_dir)
-        except EnvironmentError as e:
-            log_environment_error('Error reading playlist %s' % uri, e)
-        else:
-            return items
-
-    def lookup(self, uri):
-        path = translator.uri_to_path(uri)
-        try:
-            with self._open(path, 'r') as fp:
-                items = translator.load_items(fp, self._base_dir)
-            mtime = os.path.getmtime(self._abspath(path))
-        except EnvironmentError as e:
-            log_environment_error('Error reading playlist %s' % uri, e)
-        else:
-            return translator.playlist(path, items, mtime)
-
-    def save(self, playlist):
-        path = translator.uri_to_path(playlist.uri)
-        name = translator.name_from_path(path)
-        try:
-            with self._open(path, 'w') as fp:
-                translator.dump_items(playlist.tracks, fp)
-            if playlist.name and playlist.name != name:
-                opath, ext = os.path.splitext(path)
-                path = translator.path_from_name(playlist.name.strip()) + ext
-                os.rename(self._abspath(opath + ext), self._abspath(path))
-            mtime = os.path.getmtime(self._abspath(path))
-        except EnvironmentError as e:
-            log_environment_error('Error saving playlist %s' % playlist.uri, e)
-        else:
-            return translator.playlist(path, playlist.tracks, mtime)
+            assert(type(infile) == '_io.TextIOWrapper')
+        except AssertionError:
+            infile = open(infile,'r')
+        line = infile.readline()
+        if not line.startswith('#EXTM3U'):
+            return
+        return True
 
     def _abspath(self, path):
         return os.path.join(self._playlists_dir, path)
 
-    def _open(self, path, mode='r'):
-        if path.endswith(b'.m3u8'):
-            encoding = 'utf-8'
-        else:
-            encoding = self._default_encoding
-        if not os.path.isabs(path):
-            path = os.path.join(self._playlists_dir, path)
-        if 'w' in mode:
-            return replace(path, mode, encoding=encoding, errors='replace')
-        else:
-            return io.open(path, mode, encoding=encoding, errors='replace')
-
-
     def refresh(self):
-        playlists = {}
+        playlist = '1.m3u'
+        directory = '/home/test/mopidy/playlists/'
+    	url = 'http://lukoil2.muzis.ru/api/v1/stream/playlist_box/%s' % (playlist)
+        tempfile = '/tmp/new_playlist.m3u'
 
-        # We need to grab all the songs for later. All access metadata
-        # will be included with the playlist entry, but uploaded music
-        # will not.
-        library_tracks = {}
-        # for track in self.backend.session.get_all_songs():
-            # mopidy_track = self.backend.library._to_mopidy_track(track)
-            # library_tracks[track['id']] = mopidy_track
-
-        # add thumbs up playlist
-        tracks = []
-        # for track in self.backend.session.get_promoted_songs():
-        #     tracks.append(self.backend.library._to_mopidy_track(track))
-
-        # if len(tracks) > 0:
-        #     uri = 'gmusic:playlist:promoted'
-        #     playlists[uri] = Playlist(uri=uri, name='Promoted', tracks=tracks)
-
-        # load user playlists
-        # for playlist in self.backend.session.get_all_user_playlist_contents():
-        #     tracks = []
-        #     for entry in playlist['tracks']:
-        #         if entry['deleted']:
-        #             continue
-
-        #         if entry['source'] == u'1':
-        #             tracks.append(library_tracks[entry['trackId']])
-        #         else:
-        #             entry['track']['id'] = entry['trackId']
-        #             tracks.append(self.backend.library._to_mopidy_track(
-        #                 entry['track']))
-
-        #     uri = 'gmusic:playlist:' + playlist['id']
-        #     playlists[uri] = Playlist(uri=uri,
-        #                               name=playlist['name'],
-        #                               tracks=tracks)
-
-        # load shared playlists
-        # for playlist in self.backend.session.get_all_playlists():
-        #     if playlist.get('type') == 'SHARED':
-        #         tracks = []
-        #         tracklist = self.backend.session.get_shared_playlist_contents(
-        #             playlist['shareToken'])
-        #         for entry in tracklist:
-        #             if entry['source'] == u'1':
-        #                 tracks.append(library_tracks[entry['trackId']])
-        #             else:
-        #                 entry['track']['id'] = entry['trackId']
-        #                 tracks.append(self.backend.library._to_mopidy_track(
-        #                     entry['track']))
-
-        #         uri = 'gmusic:playlist:' + playlist['id']
-        #         playlists[uri] = Playlist(uri=uri,
-        #                                   name=playlist['name'],
-        #                                   tracks=tracks)
-
-        # l = len(playlists)
-        # logger.info('Loaded %d playlists', len(playlists))
+    	logger.info('Download playlist !!!')
+        pfile = urllib.URLopener()
+    	try:
+    	   pfile.retrieve(url, '/tmp/new_playlist.m3u')
+    	except:
+            logger.error('Error loading playlist')
+            return
+        if(self.check_playlist('/tmp/new_playlist.m3u')):
+            os.rename(tempfile, os.path.join(directory,playlist))
+        else:
+            logger.error('Download playlist is not correcty')
