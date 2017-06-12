@@ -1,12 +1,11 @@
 from __future__ import absolute_import, unicode_literals
 
-import contextlib
 import io
 import locale
 import logging
-import operator
 import os
-import urllib
+import requests
+import shutil
 
 from mopidy import backend
 
@@ -55,15 +54,25 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         directory = '/home/test/mopidy/playlists/'
     	url = 'http://lukoil2.muzis.ru/api/v1/stream/playlist_box/%s' % (playlist)
         tempfile = '/tmp/new_playlist.m3u'
+        path = os.path.join(directory,playlist)
 
     	logger.info('Download playlist !!!')
-        pfile = urllib.URLopener()
-    	try:
-    	   pfile.retrieve(url, '/tmp/new_playlist.m3u')
-    	except:
-            logger.error('Error loading playlist')
-            return
-        if(self.check_playlist('/tmp/new_playlist.m3u')):
-            os.rename(tempfile, os.path.join(directory,playlist))
+        try:
+            r = requests.get(url, stream=True, timeout=(5, 60))
+        except requests.exceptions.ReadTimeout:
+            return logger.error('Error Read timeout occured')
+        except requests.exceptions.ConnectTimeout:
+            return logger.error('Error Connection timeout occured')
+
+        if r.status_code == 200:
+            with open(tempfile, 'wb') as f:
+                for chunk in r:
+                    f.write(chunk)
+
+            if(self.check_playlist(tempfile)):
+                shutil.move(tempfile, path)
+            else:
+                logger.error('Download playlist is not correcty')
         else:
-            logger.error('Download playlist is not correcty')
+            logger.error('Download failed')
+
