@@ -1,6 +1,6 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Plugin for work mopidy with muz-lab.ru service as backend
 
 ### What is this repository for? ###
 
