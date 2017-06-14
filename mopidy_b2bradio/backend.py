@@ -24,19 +24,19 @@ class B2bradioBackend(
     def __init__(self, config, audio):
         super(B2bradioBackend, self).__init__()
 
-        self.config = config
-        self._refresh_playlists_rate = 600.0
+        ext_config = config['b2bradio']
+        self._playlists_dir = ext_config['playlists_dir']
+        self._refresh_playlists_rate = ext_config['refresh_playlists_rate']
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
         self.playlists = B2bradioPlaylistsProvider(self, config)
-        self.client = None
+        self.client = Client()
 
     def on_start(self):
         logger.info('Start mopidy!!!')
         self.playlists.refresh()
-        self.client = Client()
         # schedule playlist refresh as desired
         if self._refresh_playlists_rate > 0:
             self._refresh_playlists_timer = RepeatingTimer(

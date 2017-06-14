@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 import logging
+import os
 from datetime import datetime as dt
 from mopidy import core, listener
 import pykka
@@ -53,6 +54,9 @@ def get_current_track(playlist, current_datetime):
 class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
     def __init__(self, config, core):
         super(B2bradioCoreEvent, self).__init__()
+        ext_config = config['b2bradio']
+        self._playlists_dir = ext_config['playlists_dir']
+        self._playlist = parsem3u(os.path.join(self._playlists_dir,'main.m3u'))
 
     def track_playback_ended(self, tl_track, time_position):
     	pass
@@ -63,11 +67,8 @@ class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
     def playlists_loaded(self):
         logger.info('Playlists_loaded!!!')
 
-
-
     def track_playback_started(self, tl_track):
     	logger.info('Start %s' % (tl_track.track.name))
-    	playlist = parsem3u('/home/test/mopidy/playlists/1.m3u')
         client = MPDClient()
         client.connect("localhost", 6600)
         current_playtime = dt.strptime(tl_track.track.name.split('start-time=')[1].split(',')[0], '%d %m %Y %H %M %S')
@@ -75,7 +76,7 @@ class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
     	distance = abs((current_playtime - dt_now).total_seconds())
     	logger.info('distance = %s' % (distance))
     	if distance > 600:
-    		current_track = get_current_track(playlist, dt_now)
+    		current_track = get_current_track(self._playlist, dt_now)
     		if current_track:
     			client.play(current_track.id)
     			logger.info('Synhr play %s %s' % (current_track.id, current_track.title))

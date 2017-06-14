@@ -27,6 +27,9 @@ class B2bradioExtension(ext.Extension):
         schema['default_encoding'] = config.String()
         schema['default_extension'] = config.String(choices=['.m3u', '.m3u8'])
         schema['playlists_dir'] = config.Path(optional=True)
+        schema['playlist'] = config.String()
+        schema['playlist_url'] = config.String()
+        schema['refresh_playlists_rate'] = config.Integer(minimum=60)
         return schema
 
     def setup(self, registry):

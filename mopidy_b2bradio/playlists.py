@@ -1,12 +1,11 @@
 from __future__ import absolute_import, unicode_literals
 
+import io
 import locale
 import logging
 import os
 import requests
 import shutil
-
-from mpd import MPDClient
 
 from mopidy import backend
 
@@ -35,6 +34,8 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         self._playlists_dir = ext_config['playlists_dir']
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
         self._default_encoding = ext_config['default_encoding']
+        self._playlist = ext_config['playlist']
+        self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
 
     def check_playlist(self, infile):
@@ -51,15 +52,13 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         return os.path.join(self._playlists_dir, path)
 
     def refresh(self):
-        playlist = '1.m3u'
-        directory = '/home/test/mopidy/playlists/'
-    	url = 'http://lukoil2.muzis.ru/api/v1/stream/playlist_bo/%s' % (playlist)
+        uri = '%s/%s' % (self._playlist_url, self._playlist)
         tempfile = '/tmp/new_playlist.m3u'
-        path = os.path.join(directory,playlist)
+        path = os.path.join(self._playlists_dir,'main.m3u')
 
-    	logger.info('Download playlist !!!')
+        logger.info('Download playlist !!!')
         try:
-            r = requests.get(url, stream=True, timeout=(5, 60))
+            r = requests.get(uri, stream=True, timeout=(5, 60))
         except requests.exceptions.ReadTimeout:
             return logger.error('Error Read timeout occured')
         except requests.exceptions.ConnectTimeout:
@@ -72,11 +71,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
 
             if(self.check_playlist(tempfile)):
                 shutil.move(tempfile, path)
-                client = MPDClient()
-                client.connect("localhost", 6600)
-                client.lo
             else:
                 logger.error('Download playlist is not correcty')
         else:
             logger.error('Download failed')
-

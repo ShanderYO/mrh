@@ -24,7 +24,7 @@ class Client(object):
             logger.info('Connect error!')
         else:
             self._connect_timer.cancel()
-            self.load_playlist('1')
+            self.load_playlist('main')
             self.client.consume(1)
             # self.client.crossfade(1)
             # self.client.mixrampdb(-17)
