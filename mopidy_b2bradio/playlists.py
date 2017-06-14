@@ -1,11 +1,12 @@
 from __future__ import absolute_import, unicode_literals
 
-import io
 import locale
 import logging
 import os
 import requests
 import shutil
+
+from mpd import MPDClient
 
 from mopidy import backend
 
@@ -52,7 +53,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
     def refresh(self):
         playlist = '1.m3u'
         directory = '/home/test/mopidy/playlists/'
-    	url = 'http://lukoil2.muzis.ru/api/v1/stream/playlist_box/%s' % (playlist)
+    	url = 'http://lukoil2.muzis.ru/api/v1/stream/playlist_bo/%s' % (playlist)
         tempfile = '/tmp/new_playlist.m3u'
         path = os.path.join(directory,playlist)
 
@@ -71,6 +72,9 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
 
             if(self.check_playlist(tempfile)):
                 shutil.move(tempfile, path)
+                client = MPDClient()
+                client.connect("localhost", 6600)
+                client.lo
             else:
                 logger.error('Download playlist is not correcty')
         else:

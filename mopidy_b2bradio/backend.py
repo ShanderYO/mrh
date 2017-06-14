@@ -25,7 +25,7 @@ class B2bradioBackend(
         super(B2bradioBackend, self).__init__()
 
         self.config = config
-        self._refresh_playlists_rate = 5.0
+        self._refresh_playlists_rate = 600.0
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
@@ -53,10 +53,10 @@ class B2bradioBackend(
         pass
 
     def _refresh_playlists(self):
-        logger.info(self.client.get_status())
+        # logger.info(self.client.get_status())
         with self._playlist_lock:
             t0 = round(time.time())
-            logger.info('Start refreshing playlists')
+            # logger.info('Start refreshing playlists')
             self.playlists.refresh()
             t = round(time.time()) - t0
-            logger.info('Finished refreshing playlists in %ds', t)
+            # logger.info('Finished refreshing playlists in %ds', t)
