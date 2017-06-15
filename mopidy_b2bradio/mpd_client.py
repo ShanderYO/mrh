@@ -5,6 +5,12 @@ from .repeating_timer import RepeatingTimer
 import logging
 logger = logging.getLogger(__name__)
 
+def new_mpd_client():
+        client = MPDClient()
+        client.timeout = 20
+        client.idletimeout = 20
+        client.connect("localhost", 6600)
+        return client
 
 class Client(object):
 
@@ -29,16 +35,19 @@ class Client(object):
             # self.client.crossfade(1)
             # self.client.mixrampdb(-17)
             # self.client.mixrampdelay(2)
-            
 
     def load_playlist(self, id):
-    	self.client.load(id)
-    	self.client.play()
+        if not len(self.client.playlistinfo()):
+    	   self.client.load(id)
+        if self.client.status()['state'] != 'play':
+    	   self.client.play()
 
     def get_status(self):
         try:
             logger.info(self.client.status())
         except:
             pass
+
+MPD = Client()
         
 

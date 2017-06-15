@@ -12,7 +12,7 @@ import pykka
 from .playlists import B2bradioPlaylistsProvider
 from .repeating_timer import RepeatingTimer
 
-from .mpd_client import Client
+from .mpd_client import MPD
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class B2bradioBackend(
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
         self.playlists = B2bradioPlaylistsProvider(self, config)
-        self.client = Client()
+        self.client = MPD.client
 
     def on_start(self):
         logger.info('Start mopidy!!!')

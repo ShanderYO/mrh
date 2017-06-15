@@ -6,10 +6,9 @@ import logging
 import os
 import requests
 import shutil
+from .mpd_client import new_mpd_client
 
 from mopidy import backend
-
-from . import translator
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +70,13 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
 
             if(self.check_playlist(tempfile)):
                 shutil.move(tempfile, path)
+                try:
+                    client = new_mpd_client()
+                    client.clear()
+                    client.load('main')
+                    client.play()
+                except:
+                    pass
             else:
                 logger.error('Download playlist is not correcty')
         else:
