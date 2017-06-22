@@ -37,14 +37,28 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
 
-    def check_playlist(self, infile):
+    def check_playlist(self, path):
         try:
-            assert(type(infile) == '_io.TextIOWrapper')
+            assert(type(path) == '_io.TextIOWrapper')
         except AssertionError:
-            infile = open(infile,'r')
-        line = infile.readline()
-        if not line.startswith('#EXTM3U'):
+            infile = open(path,'r')
+        playlist_type = infile.readline()
+        if not playlist_type.startswith('#EXTM3U'):
             return
+        playlist_number = infile.readline()
+        if not playlist_number.startswith('#PLAYLIST'):
+            return
+        with open(path, 'wb') as f:
+            f.write(playlist_type)
+            f.write(playlist_number)
+            for line in infile.readlines():
+                print('->',line, line.startswith('#EXTINF:'), line.endswith('mp3\n'))
+                if line.startswith('#EXTINF:'):
+                    line1 = line
+                elif line.endswith('mp3\n') and os.path.exists(line.replace('\n', '')):
+                    print('LINE:',line1,line)
+                    f.write(line1)
+                    f.write(line)
         return True
 
     def _abspath(self, path):
@@ -56,6 +70,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         path = os.path.join(self._playlists_dir,'main.m3u')
 
         logger.info('Download playlist !!!')
+        logger.info(uri)
         try:
             r = requests.get(uri, stream=True, timeout=(5, 60))
         except requests.exceptions.ReadTimeout:
