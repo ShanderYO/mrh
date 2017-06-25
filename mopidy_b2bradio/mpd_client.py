@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import socket
 from mpd import MPDClient
 from .repeating_timer import RepeatingTimer
@@ -18,8 +19,6 @@ class Client(object):
         self.client = MPDClient()
         self.client.timeout = 20
         self.client.idletimeout = 20
-
-
         self._connect_timer = RepeatingTimer(self.connect, 3)
         self._connect_timer.start()
         

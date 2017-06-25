@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
 import io
@@ -37,14 +38,37 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
 
-    def check_playlist(self, infile):
+    def check_playlist(self, path):
         try:
-            assert(type(infile) == '_io.TextIOWrapper')
+            assert(type(path) == '_io.TextIOWrapper')
         except AssertionError:
-            infile = open(infile,'r')
-        line = infile.readline()
-        if not line.startswith('#EXTM3U'):
+            infile = open(path,'r')
+        playlist_type = infile.readline()
+        if not playlist_type.startswith('#EXTM3U'):
             return
+        playlist_number = infile.readline()
+        if not playlist_number.startswith('#PLAYLIST'):
+            return
+        lines = infile.readlines()
+        entry = []
+        for i,line in enumerate(lines):
+            if i%2 == 1:
+                continue
+            try:
+                n = [line, lines[i+1]]
+                entry.append(n)
+            except IndexError:
+                pass
+        entry = [e for e in entry if len(e) == 2 and 
+                                     e[0].decode('utf-8').startswith('#EXTINF') and 
+                                     e[1].decode('utf-8').endswith('mp3\n') and 
+                                     os.path.exists(e[1].replace('\n', ''))]
+        with open(path, 'wb') as f:
+            f.write(playlist_type)
+            f.write(playlist_number)
+            for e in entry:
+                f.write(e[0])
+                f.write(e[1])
         return True
 
     def _abspath(self, path):
@@ -56,6 +80,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         path = os.path.join(self._playlists_dir,'main.m3u')
 
         logger.info('Download playlist !!!')
+        logger.info(uri)
         try:
             r = requests.get(uri, stream=True, timeout=(5, 60))
         except requests.exceptions.ReadTimeout:

@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
 import logging
 import os
 from datetime import datetime as dt
-from mopidy import core, listener
+from mopidy import core, audio
 import pykka
 from .mpd_client import new_mpd_client
 
@@ -17,6 +18,7 @@ class Track():
         self.title = title
         self.playtime = playtime
         self.pos = pos
+
 
 def playlistinfo_objects(plinfo):
     playlist=[]
@@ -37,6 +39,7 @@ def get_current_track(playlist, current_datetime):
 
 
 class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
+    
     def __init__(self, config, core):
         super(B2bradioCoreEvent, self).__init__()
         ext_config = config['b2bradio']
@@ -48,8 +51,17 @@ class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
 	def tracklist_changed(self):
 		pass
 
+    def playback_state_changed(self, old_state, new_state):
+        client = new_mpd_client()
+        playlist = client.playlistinfo()
+        if len(playlist) == 0 or client.status()['state'] == 'stop':
+            client.clear()
+            client.load('main')            
+            client.play()
+        logger.info('Playback changed: %s %s' % (old_state, new_state))
+
     def playlists_loaded(self):
-        logger.info('Playlists_loaded!!!')
+        logger.info('Playlists loaded!!!')
 
     def track_playback_started(self, tl_track):
         from datetime import datetime as dt
