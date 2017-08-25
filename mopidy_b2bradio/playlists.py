@@ -8,7 +8,7 @@ import os
 import requests
 import shutil
 from .mpd_client import new_mpd_client
-
+from datetime import datetime
 from mopidy import backend
 
 logger = logging.getLogger(__name__)
@@ -71,12 +71,13 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
                 f.write(e[1])
         return True
 
-    def _abspath(self, path):
-        return os.path.join(self._playlists_dir, path)
-
     def get_current_playlist(self):
-        return 'main'
-
+        current_hour = int(datetime.now().strftime('%H'))
+        periud = self._playlist.split(',')[0].split(':')[1].split(':')
+        periud = range(int(periud[0]), int(periud[1]))
+        if current_hour in periud:
+            return 'main'
+        return 'second'
 
     def download_playlist(self, playlist, filename):
         uri = '%s/%s' % (self._playlist_url, playlist)
