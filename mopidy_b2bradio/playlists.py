@@ -74,10 +74,14 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
     def _abspath(self, path):
         return os.path.join(self._playlists_dir, path)
 
-    def refresh(self):
-        uri = '%s/%s' % (self._playlist_url, self._playlist)
+    def get_current_playlist(self):
+        return 'main'
+
+
+    def download_playlist(self, playlist, filename):
+        uri = '%s/%s' % (self._playlist_url, playlist)
         tempfile = '/tmp/new_playlist.m3u'
-        path = os.path.join(self._playlists_dir,'main.m3u')
+        path = os.path.join(self._playlists_dir, filename)
 
         logger.info('Download playlist !!!')
         logger.info(uri)
@@ -95,14 +99,26 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
 
             if(self.check_playlist(tempfile)):
                 shutil.move(tempfile, path)
-                try:
-                    client = new_mpd_client()
-                    client.clear()
-                    client.load('main')
-                    client.play()
-                except:
-                    pass
             else:
                 logger.error('Download playlist is not correcty')
         else:
             logger.error('Download failed')
+
+    def refresh(self):
+        playlist = self._playlist.split(',')[0].split(':')[0]
+        self.download_playlist(playlist=playlist, filename='main.m3u')
+        playlist_second = self._playlist.split(',')[1].split(':')[0]
+        self.download_playlist(playlist=playlist, filename='second.m3u')
+
+        current = self.get_current_playlist()
+        try:
+            client = new_mpd_client()
+            client.clear()
+            client.load(current)
+            client.play()
+        except:
+            pass
+
+        
+
+        
