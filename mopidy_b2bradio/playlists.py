@@ -8,7 +8,7 @@ import os
 import requests
 import shutil
 from .mpd_client import new_mpd_client
-from datetime import datetime
+from datetime import datetime as dt
 from mopidy import backend
 
 logger = logging.getLogger(__name__)
@@ -71,9 +71,9 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
                 f.write(e[1])
         return True
 
-    def get_current_playlist(self):
-        current_hour = int(datetime.now().strftime('%H'))
-        periud = self._playlist.split(',')[0].split(':')[1].split(':')
+    def get_correct_playlist(self):
+        current_hour = int(dt.now().strftime('%H'))
+        periud = self._playlist.split(',')[0].split(':')[1].split('-')
         periud = range(int(periud[0]), int(periud[1]))
         if current_hour in periud:
             return 'main'
@@ -111,7 +111,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         playlist_second = self._playlist.split(',')[1].split(':')[0]
         self.download_playlist(playlist=playlist, filename='second.m3u')
 
-        current = self.get_current_playlist()
+        current = self.get_correct_playlist()
         try:
             client = new_mpd_client()
             client.clear()
