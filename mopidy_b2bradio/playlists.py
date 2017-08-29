@@ -90,7 +90,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 
         def download_tracks(url):
-            if not os.path.dirname(url):
+            if not os.path.exists(os.path.dirname(url)):
                 os.makedirs(os.path.dirname(url))
             try:
                 base_name = os.path.basename(url)
