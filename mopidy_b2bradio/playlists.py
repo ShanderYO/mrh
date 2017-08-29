@@ -10,6 +10,7 @@ import shutil
 from .mpd_client import new_mpd_client
 from datetime import datetime as dt
 from mopidy import backend
+import urllib
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,9 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
 
+    def get_file_name(self,e):
+        return e[1].replace('\n', '')
+
     def check_playlist(self, path):
         try:
             assert(type(path) == '_io.TextIOWrapper')
@@ -59,10 +63,12 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
                 entry.append(n)
             except IndexError:
                 pass
-        entry = [e for e in entry if len(e) == 2 and 
-                                     e[0].decode('utf-8').startswith('#EXTINF') and 
-                                     e[1].decode('utf-8').endswith('mp3\n') and 
-                                     os.path.exists(e[1].replace('\n', ''))]
+        self.sync_tracks(entry)
+        entry = [e for e in entry if len(e) == 2 and
+                                     e[0].decode('utf-8').startswith('#EXTINF') and
+                                     e[1].decode('utf-8').endswith('mp3\n') and
+                                     os.path.exists(self.get_file_name(e))
+                                     ]
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
@@ -78,6 +84,26 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         if current_hour in periud:
             return 'main'
         return 'second'
+
+
+    def sync_tracks(self, entry):
+        from concurrent.futures import ThreadPoolExecutor, wait, as_completed
+
+        def download_tracks(url):
+            try:
+                base_name = os.path.basename(url)
+                urllib.urlretrieve('http://f.muz-lab.ru/'+ base_name, '/tmp/'+base_name)
+                os.makedirs(os.path.dirname(url))
+                shutil.move('/tmp/' + base_name,url)
+                logger.info(' File %s downloaded'%(url))
+            except Exception as es:
+                logger.info(str(es))
+
+        pool = ThreadPoolExecutor(2)
+        tracks_not_exists = [self.get_file_name(e) for e in entry if len(e) == 2 and not os.path.exists(self.get_file_name(e))]
+        futures = [pool.submit(download_tracks, url) for url in tracks_not_exists[:5]]
+        return [r.result() for r in as_completed(futures)]
+
 
     def download_playlist(self, playlist, filename):
         uri = '%s/%s' % (self._playlist_url, playlist)

@@ -30,6 +30,7 @@ setup(
         'requests >= 2.0',
         'cachetools >= 1.0',
         'python-mpd2 > 0.5',
+        'futures >= 3.1.1'
     ],
     entry_points={
         'mopidy.ext': [
