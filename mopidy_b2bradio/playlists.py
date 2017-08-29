@@ -90,10 +90,11 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 
         def download_tracks(url):
+            if not os.path.dirname(url):
+                os.makedirs(os.path.dirname(url))
             try:
                 base_name = os.path.basename(url)
                 urllib.urlretrieve('http://f.muz-lab.ru/'+ base_name, '/tmp/'+base_name)
-                os.makedirs(os.path.dirname(url))
                 shutil.move('/tmp/' + base_name,url)
                 logger.info(' File %s downloaded'%(url))
             except Exception as es:
