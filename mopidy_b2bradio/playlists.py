@@ -10,7 +10,7 @@ import shutil
 from .mpd_client import new_mpd_client
 from datetime import datetime as dt
 from mopidy import backend
-import urllib
+import urllib2
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,9 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
                 os.makedirs(os.path.dirname(url))
             try:
                 base_name = os.path.basename(url)
-                urllib.urlretrieve('http://f.muz-lab.ru/'+ base_name, '/tmp/'+base_name)
+                mp3file = urllib2.urlopen('http://f.muz-lab.ru/'+ base_name)
+                with open('/tmp/' + base_name, 'wb') as output:
+                    output.write(mp3file.read())
                 shutil.move('/tmp/' + base_name,url)
                 logger.info(' File %s downloaded'%(url))
             except Exception as es:
