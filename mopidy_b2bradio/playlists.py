@@ -67,8 +67,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         entry = [e for e in entry if len(e) == 2 and
                                      e[0].decode('utf-8').startswith('#EXTINF') and
                                      e[1].decode('utf-8').endswith('mp3\n') and
-                                     os.path.exists(self.get_file_name(e)) and
-                                     os.stat(self.get_file_name(e)).st_size > 500
+                                     os.path.exists(self.get_file_name(e))
                                      ]
         with open(path, 'wb') as f:
             f.write(playlist_type)
