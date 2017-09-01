@@ -82,8 +82,11 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         periud = self._playlist.split(',')[0].split(':')[1].split('-')
         periud = range(int(periud[0]), int(periud[1]))
         if current_hour in periud:
+            logger.info('main playlist')
             return 'main'
-        return 'second'
+        else:
+            logger.info('second playlist')
+            return 'second'
 
 
     def sync_tracks(self, entry):
@@ -138,7 +141,7 @@ class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
         playlist = self._playlist.split(',')[0].split(':')[0]
         self.download_playlist(playlist=playlist, filename='main.m3u')
         playlist_second = self._playlist.split(',')[1].split(':')[0]
-        self.download_playlist(playlist=playlist, filename='second.m3u')
+        self.download_playlist(playlist=playlist_second, filename='second.m3u')
 
         current = self.get_correct_playlist()
         try:
