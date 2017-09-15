@@ -1,9 +1,9 @@
 ****************
-Mopidy-B2bradio
+Mopidy-Muzlab
 ****************
 
 `Mopidy <http://www.mopidy.com/>`_ extension for playing music from
-`B2bradio`_.
+`Muzlab`_.
 
 
 Configuration
