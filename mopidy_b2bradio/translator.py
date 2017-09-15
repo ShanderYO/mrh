@@ -39,7 +39,7 @@ except ImportError:
         return filename.decode(encoding, 'replace')
 
 
-def path_to_uri(path, scheme='b2bradio'):
+def path_to_uri(path, scheme='muzlab'):
     """Convert file path to URI."""
     assert isinstance(path, bytes), 'Mopidy paths should be bytes'
     uripath = quote_from_bytes(os.path.normpath(path))

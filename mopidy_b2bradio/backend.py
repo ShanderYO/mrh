@@ -10,7 +10,7 @@ from mopidy import backend
 
 import pykka
 
-from .playlists import B2bradioPlaylistsProvider
+from .playlists import MuzlabPlaylistsProvider
 from .repeating_timer import RepeatingTimer
 
 from .mpd_client import MPD
@@ -18,21 +18,21 @@ from .mpd_client import MPD
 logger = logging.getLogger(__name__)
 
 
-class B2bradioBackend(
+class MuzlabBackend(
         pykka.ThreadingActor, backend.Backend):
-    uri_schemes = ['b2bradio']
+    uri_schemes = ['muzlab']
 
     def __init__(self, config, audio):
-        super(B2bradioBackend, self).__init__()
+        super(MuzlabBackend, self).__init__()
 
-        ext_config = config['b2bradio']
+        ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
         self._refresh_playlists_rate = ext_config['refresh_playlists_rate']
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
-        self.playlists = B2bradioPlaylistsProvider(self, config)
+        self.playlists = MuzlabPlaylistsProvider(self, config)
         self.client = MPD.client
 
     def on_start(self):

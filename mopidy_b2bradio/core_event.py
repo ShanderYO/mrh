@@ -38,11 +38,11 @@ def get_current_track(playlist, current_datetime):
 		return track
 
 
-class B2bradioCoreEvent(pykka.ThreadingActor, core.CoreListener):
+class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
     
     def __init__(self, config, core):
-        super(B2bradioCoreEvent, self).__init__()
-        ext_config = config['b2bradio']
+        super(MuzlabCoreEvent, self).__init__()
+        ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
 
     def track_playback_ended(self, tl_track, time_position):

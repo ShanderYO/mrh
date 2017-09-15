@@ -10,7 +10,7 @@ def new_mpd_client():
         client = MPDClient()
         client.timeout = 20
         client.idletimeout = 20
-        client.connect("localhost", 6600)
+        client.connect("localhost", 6602)
         return client
 
 class Client(object):
@@ -24,7 +24,7 @@ class Client(object):
         
     def connect(self):
     	try:
-            self.client.connect("localhost", 6600)
+            self.client.connect("localhost", 6602)
         except socket.error:
             logger.info('Connect error!')
         else:

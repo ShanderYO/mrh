@@ -12,10 +12,10 @@ __version__ = '0.1.0'
 
 logger = logging.getLogger(__name__)
 
-class B2bradioExtension(ext.Extension):
+class MuzlabExtension(ext.Extension):
 
-    dist_name = 'Mopidy-B2bradio'
-    ext_name = 'b2bradio'
+    dist_name = 'Mopidy-Muzlab'
+    ext_name = 'muzlab'
     version = __version__
 
     def get_default_config(self):
@@ -23,7 +23,7 @@ class B2bradioExtension(ext.Extension):
         return config.read(conf_file)
 
     def get_config_schema(self):
-        schema = super(B2bradioExtension, self).get_config_schema()
+        schema = super(MuzlabExtension, self).get_config_schema()
         schema['base_dir'] = config.Path(optional=True)
         schema['default_encoding'] = config.String()
         schema['default_extension'] = config.String(choices=['.m3u', '.m3u8'])
@@ -34,7 +34,7 @@ class B2bradioExtension(ext.Extension):
         return schema
 
     def setup(self, registry):
-        from .backend import B2bradioBackend
-        from .core_event import B2bradioCoreEvent
-        registry.add('backend', B2bradioBackend)
-        registry.add('frontend', B2bradioCoreEvent)
+        from .backend import MuzlabBackend
+        from .core_event import MuzlabCoreEvent
+        registry.add('backend', MuzlabBackend)
+        registry.add('frontend', MuzlabCoreEvent)

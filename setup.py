@@ -12,13 +12,13 @@ def get_version(filename):
 
 
 setup(
-    name='Mopidy-B2bradio',
-    version=get_version('mopidy_b2bradio/__init__.py'),
-    url='https://Muzis@bitbucket.org/Muzis/mopidy_b2bradio.git',
-    license='Apache License, Version 0.1.1',
+    name='Mopidy-Muzlab',
+    version=get_version('mopidy_muzlab/__init__.py'),
+    url='https://Muzis@bitbucket.org/muzisteam/mopidy-muzlab.git',
+    license='Apache License, Version 0.2.0',
     author='Aleksey Sharf',
     author_email='a.sharf@muzis.ru',
-    description='Mopidy extension for playing music from b2bradio service',
+    description='Mopidy extension for playing music from muz-lab.ru service',
     long_description=open('README.rst').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
@@ -29,12 +29,12 @@ setup(
         'Pykka >= 1.1',
         'requests >= 2.0',
         'cachetools >= 1.0',
-        'python-mpd2 > 0.5',
+        'python-mpd2 > 0.5.1',
         'futures >= 3.1.1'
     ],
     entry_points={
         'mopidy.ext': [
-            'b2bradio = mopidy_b2bradio:B2bradioExtension',
+            'muzlab = mopidy_muzlab:MuzlabExtension',
         ],
     },
     classifiers=[

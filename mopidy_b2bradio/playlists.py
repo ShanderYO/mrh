@@ -23,12 +23,12 @@ def log_environment_error(message, error):
     logger.error('%s: %s', message, strerror)
 
 
-class B2bradioPlaylistsProvider(backend.PlaylistsProvider):
+class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
 
     def __init__(self, backend, config):
-        super(B2bradioPlaylistsProvider, self).__init__(backend)
+        super(MuzlabPlaylistsProvider, self).__init__(backend)
 
-        ext_config = config['b2bradio']
+        ext_config = config['muzlab']
         # if ext_config['playlists_dir'] is None:
         #     self._playlists_dir = Extension.get_data_dir(config)
         # else:
