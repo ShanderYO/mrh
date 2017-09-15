@@ -15,7 +15,7 @@ setup(
     name='Mopidy-Muzlab',
     version=get_version('mopidy_muzlab/__init__.py'),
     url='https://Muzis@bitbucket.org/muzisteam/mopidy-muzlab.git',
-    license='Apache License, Version 0.2.0',
+    license='Apache License, Version 0.2',
     author='Aleksey Sharf',
     author_email='a.sharf@muzis.ru',
     description='Mopidy extension for playing music from muz-lab.ru service',
