@@ -14,11 +14,11 @@ def get_version(filename):
 setup(
     name='Mopidy-Muzlab',
     version=get_version('mopidy_muzlab/__init__.py'),
-    url='https://Muzis@bitbucket.org/muzisteam/mopidy-muzlab.git',
+    url='https://Muzis@bitbucket.org/muzisteam/mopidy_muzlab.git',
     license='Apache License, Version 0.2',
     author='Aleksey Sharf',
     author_email='a.sharf@muzis.ru',
-    description='Mopidy extension for playing music from muz-lab.ru service',
+    description='Mopidy extension for playing music from muzlab service',
     long_description=open('README.rst').read(),
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
