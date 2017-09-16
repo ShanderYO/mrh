@@ -2,7 +2,7 @@ include .travis.yml
 include LICENSE
 include MANIFEST.in
 include README.rst
-include muzlab/ext.conf
+include mopidy_muzlab/ext.conf
 include tox.ini
 
 recursive-include tests *.py
