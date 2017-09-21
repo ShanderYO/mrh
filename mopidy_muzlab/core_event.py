@@ -38,7 +38,7 @@ def get_current_track(playlist, current_datetime):
 		return track
 
 
-class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
+class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListener):
     
     def __init__(self, config, core):
         super(MuzlabCoreEvent, self).__init__()
@@ -63,8 +63,8 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
     def playlists_loaded(self):
         logger.info('Playlists loaded!!!')
 
-    def seeked(self, time_position):
-        logger.info('time_position!!!')
+    def position_changed(self, position):
+        logger.info('position_changed!!!', position)
 
     def track_playback_started(self, tl_track):
         from datetime import datetime as dt
