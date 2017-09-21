@@ -64,7 +64,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListen
         logger.info('Playlists loaded!!!')
 
     def position_changed(self, position):
-        logger.info('position_changed!!!', position)
+        logger.info('position_changed!!!', str(position))
 
     def track_playback_started(self, tl_track):
         from datetime import datetime as dt
