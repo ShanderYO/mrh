@@ -90,6 +90,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             else:
                 logger.info('second playlist')
                 return 'second'
+        logger.info('link playlist')
         return 'link'
 
     def sync_tracks(self, entry):
@@ -144,8 +145,8 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         link = self._link
         path = os.path.join(self._playlists_dir, 'link.m3u')
         with open(path, 'wb') as f:
-            f.write('#EXTM3U')
-            f.write('#EXTINF:-1,Link')
+            f.write('#EXTM3U\n')
+            f.write('#EXTINF:-1,Link\n')
             f.write(link)
         return True
 
