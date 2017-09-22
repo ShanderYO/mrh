@@ -57,10 +57,10 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListen
     def playback_state_changed(self, old_state, new_state):
         client = new_mpd_client()
         playlist = client.playlistinfo()
-        if len(playlist) == 0 or client.status()['state'] == 'stop':
-            client.clear()
-            client.load(get_correct_playlist(self._playlist, self._cast_type))            
-            client.play()
+        # if len(playlist) == 0 or client.status()['state'] == 'stop':
+        #     client.clear()
+        #     client.load(get_correct_playlist(self._playlist, self._cast_type))            
+        #     client.play()
         logger.info('Playback changed: %s %s' % (old_state, new_state))
 
     def playlists_loaded(self):
