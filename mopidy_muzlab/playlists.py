@@ -140,7 +140,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         else:
             logger.error('Download failed')
 
-    def make_playlist_for_link():
+    def make_playlist_for_link(self):
         link = self._link
         path = os.path.join(self._playlists_dir, 'link.m3u')
         with open(path, 'wb') as f:
@@ -151,11 +151,11 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
 
 
     def refresh(self):
-        playlist = self._playlist.split(',')[0].split(':')[0]
-        self.download_playlist(playlist=playlist, filename='main.m3u')
-        playlist_second = self._playlist.split(',')[1].split(':')[0]
-        self.download_playlist(playlist=playlist_second, filename='second.m3u')
-
+        if self._cast_type == 'playlist':
+            playlist = self._playlist.split(',')[0].split(':')[0]
+            self.download_playlist(playlist=playlist, filename='main.m3u')
+            playlist_second = self._playlist.split(',')[1].split(':')[0]
+            self.download_playlist(playlist=playlist_second, filename='second.m3u')
         if self._cast_type == 'link':
             self.make_playlist_for_link()
 
