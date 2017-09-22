@@ -155,7 +155,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             playlist_second = self._playlist.split(',')[1].split(':')[0]
             self.download_playlist(playlist=playlist_second, filename='second.m3u')
             current = self.get_correct_playlist()
-        else if self._cast_type == 'link':
+        elif self._cast_type == 'link':
             self.make_playlist_for_link()
             current = 'link'
 
