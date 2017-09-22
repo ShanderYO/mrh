@@ -7,7 +7,6 @@ from datetime import datetime as dt
 from mopidy import core, audio
 import pykka
 from .mpd_client import new_mpd_client
-from .playlists import get_correct_playlist
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +38,12 @@ def get_current_track(playlist, current_datetime):
 		return track
 
 
-class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListener):
+class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
     
     def __init__(self, config, core):
         super(MuzlabCoreEvent, self).__init__()
         ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
-        self._playlist = ext_config['playlist']
         self._cast_type = ext_config['cast_type']
 
     def track_playback_ended(self, tl_track, time_position):
@@ -59,15 +57,12 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListen
         playlist = client.playlistinfo()
         # if len(playlist) == 0 or client.status()['state'] == 'stop':
         #     client.clear()
-        #     client.load(get_correct_playlist(self._playlist, self._cast_type))            
+        #     client.load('main')            
         #     client.play()
         logger.info('Playback changed: %s %s' % (old_state, new_state))
 
     def playlists_loaded(self):
         logger.info('Playlists loaded!!!')
-
-    def position_changed(self, position):
-        logger.info('position_changed!!! %s' % str(position))
 
     def track_playback_started(self, tl_track):
         from datetime import datetime as dt
