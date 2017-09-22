@@ -22,8 +22,8 @@ def log_environment_error(message, error):
         strerror = error.strerror
     logger.error('%s: %s', message, strerror)
 
-def get_correct_playlist(playlist):
-        if self._cast_type == 'playlist':
+def get_correct_playlist(playlist, cast_type):
+        if cast_type == 'playlist':
             current_hour = int(dt.now().strftime('%H'))
             periud = playlist.split(',')[0].split(':')[1].split('-')
             periud = range(int(periud[0]), int(periud[1]))
@@ -158,7 +158,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         if self._cast_type == 'link':
             self.make_playlist_for_link()
 
-        current = get_correct_playlist(self._playlist)
+        current = get_correct_playlist(self._playlist, self._cast_type)
         try:
             client = new_mpd_client()
             client.clear()

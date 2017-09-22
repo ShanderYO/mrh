@@ -46,6 +46,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListen
         ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
         self._playlist = ext_config['playlist']
+        self._cast_type = ext_config['cast_type']
 
     def track_playback_ended(self, tl_track, time_position):
     	pass
@@ -58,7 +59,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener, audio.AudioListen
         playlist = client.playlistinfo()
         if len(playlist) == 0 or client.status()['state'] == 'stop':
             client.clear()
-            client.load(get_correct_playlist(self._playlist))            
+            client.load(get_correct_playlist(self._playlist, self._cast_type))            
             client.play()
         logger.info('Playback changed: %s %s' % (old_state, new_state))
 
