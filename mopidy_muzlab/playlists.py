@@ -22,6 +22,17 @@ def log_environment_error(message, error):
         strerror = error.strerror
     logger.error('%s: %s', message, strerror)
 
+def get_correct_playlist(_playlist):
+        current_hour = int(dt.now().strftime('%H'))
+        periud = _playlist.split(',')[0].split(':')[1].split('-')
+        periud = range(int(periud[0]), int(periud[1]))
+        if current_hour in periud:
+            logger.info('main playlist')
+            return 'main'
+        else:
+            logger.info('second playlist')
+            return 'second'
+
 
 class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
 
@@ -79,17 +90,6 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
                 f.write(e[1])
         return True
 
-    def get_correct_playlist(self):
-        current_hour = int(dt.now().strftime('%H'))
-        periud = self._playlist.split(',')[0].split(':')[1].split('-')
-        periud = range(int(periud[0]), int(periud[1]))
-        if current_hour in periud:
-            logger.info('main playlist')
-            return 'main'
-        else:
-            logger.info('second playlist')
-            return 'second'
-
     def sync_tracks(self, entry):
         from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 
@@ -110,7 +110,6 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         tracks_not_exists = [self.get_file_name(e) for e in entry if len(e) == 2 and not os.path.exists(self.get_file_name(e))]
         futures = [pool.submit(download_tracks, url) for url in tracks_not_exists[:5]]
         return [r.result() for r in as_completed(futures)]
-
 
     def download_playlist(self, playlist, filename):
         uri = '%s/%s' % (self._playlist_url, playlist)
@@ -147,14 +146,13 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             f.write(link)
         return True
 
-
     def refresh(self):
         if self._cast_type == 'playlist':
             playlist = self._playlist.split(',')[0].split(':')[0]
             self.download_playlist(playlist=playlist, filename='main.m3u')
             playlist_second = self._playlist.split(',')[1].split(':')[0]
             self.download_playlist(playlist=playlist_second, filename='second.m3u')
-            current = self.get_correct_playlist()
+            current = get_correct_playlist(self._playlist)
         elif self._cast_type == 'link':
             self.make_playlist_for_link()
             current = 'link'
