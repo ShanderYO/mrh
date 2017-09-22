@@ -36,6 +36,8 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
         self._default_encoding = ext_config['default_encoding']
         self._playlist = ext_config['playlist']
+        self._cast_type = ext_config['cast_type']
+        self._link = ext_config['link']
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
 
@@ -78,16 +80,17 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         return True
 
     def get_correct_playlist(self):
-        current_hour = int(dt.now().strftime('%H'))
-        periud = self._playlist.split(',')[0].split(':')[1].split('-')
-        periud = range(int(periud[0]), int(periud[1]))
-        if current_hour in periud:
-            logger.info('main playlist')
-            return 'main'
-        else:
-            logger.info('second playlist')
-            return 'second'
-
+        if self._cast_type == 'playlist':
+            current_hour = int(dt.now().strftime('%H'))
+            periud = self._playlist.split(',')[0].split(':')[1].split('-')
+            periud = range(int(periud[0]), int(periud[1]))
+            if current_hour in periud:
+                logger.info('main playlist')
+                return 'main'
+            else:
+                logger.info('second playlist')
+                return 'second'
+        return 'link'
 
     def sync_tracks(self, entry):
         from concurrent.futures import ThreadPoolExecutor, wait, as_completed
@@ -137,11 +140,24 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         else:
             logger.error('Download failed')
 
+    def make_playlist_for_link():
+        link = self._link
+        path = os.path.join(self._playlists_dir, 'link.m3u')
+        with open(path, 'wb') as f:
+            f.write('#EXTM3U')
+            f.write('#EXTINF:-1,Link')
+            f.write(link)
+        return True
+
+
     def refresh(self):
         playlist = self._playlist.split(',')[0].split(':')[0]
         self.download_playlist(playlist=playlist, filename='main.m3u')
         playlist_second = self._playlist.split(',')[1].split(':')[0]
         self.download_playlist(playlist=playlist_second, filename='second.m3u')
+
+        if self._cast_type == 'link':
+            self.make_playlist_for_link()
 
         current = self.get_correct_playlist()
         try:
@@ -151,6 +167,10 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             client.play()
         except:
             pass
+
+
+
+
 
         
 
