@@ -138,7 +138,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         else:
             logger.error('Download failed')
 
-    def make_playlist_for_link():
+    def make_playlist_for_link(self):
         link = self._link
         path = os.path.join(self._playlists_dir, 'link.m3u')
         with open(path, 'wb') as f:
