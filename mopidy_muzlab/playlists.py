@@ -158,7 +158,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         if self._cast_type == 'link':
             self.make_playlist_for_link()
 
-        current = self.get_correct_playlist(self._playlist)
+        current = get_correct_playlist(self._playlist)
         try:
             client = new_mpd_client()
             client.clear()
