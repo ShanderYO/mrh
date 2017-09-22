@@ -143,7 +143,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         with open(path, 'wb') as f:
             f.write('#EXTM3U\n')
             f.write('#EXTINF:-1,Link\n')
-            f.write(link)
+            f.write(link+'\n')
         return True
 
     def refresh(self):
