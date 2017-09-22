@@ -22,6 +22,19 @@ def log_environment_error(message, error):
         strerror = error.strerror
     logger.error('%s: %s', message, strerror)
 
+def get_correct_playlist(playlist):
+        if self._cast_type == 'playlist':
+            current_hour = int(dt.now().strftime('%H'))
+            periud = playlist.split(',')[0].split(':')[1].split('-')
+            periud = range(int(periud[0]), int(periud[1]))
+            if current_hour in periud:
+                logger.info('main playlist')
+                return 'main'
+            else:
+                logger.info('second playlist')
+                return 'second'
+        logger.info('link playlist')
+        return 'link'
 
 class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
 
@@ -78,20 +91,6 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
                 f.write(e[0])
                 f.write(e[1])
         return True
-
-    def get_correct_playlist(self):
-        if self._cast_type == 'playlist':
-            current_hour = int(dt.now().strftime('%H'))
-            periud = self._playlist.split(',')[0].split(':')[1].split('-')
-            periud = range(int(periud[0]), int(periud[1]))
-            if current_hour in periud:
-                logger.info('main playlist')
-                return 'main'
-            else:
-                logger.info('second playlist')
-                return 'second'
-        logger.info('link playlist')
-        return 'link'
 
     def sync_tracks(self, entry):
         from concurrent.futures import ThreadPoolExecutor, wait, as_completed
@@ -150,7 +149,6 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             f.write(link)
         return True
 
-
     def refresh(self):
         if self._cast_type == 'playlist':
             playlist = self._playlist.split(',')[0].split(':')[0]
@@ -160,7 +158,7 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         if self._cast_type == 'link':
             self.make_playlist_for_link()
 
-        current = self.get_correct_playlist()
+        current = self.get_correct_playlist(self._playlist)
         try:
             client = new_mpd_client()
             client.clear()
