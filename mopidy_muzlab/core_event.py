@@ -70,12 +70,12 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
     def track_playback_started(self, tl_track):
         if self._cast_type == 'playlist':
             from datetime import datetime as dt
-        	logger.info('Start: %s' % (tl_track.track.name))
+            logger.info('Start: %s' % (tl_track.track.name))
             current_playtime = dt.strptime(tl_track.track.name.split('start-time=')[1].split(',')[0], '%d %m %Y %H %M %S')
             dt_now = dt.now()
-        	distance = (dt_now - current_playtime).total_seconds()
-        	logger.info('distance = %s' % (distance))
-        	if distance > 300:
+            distance = (dt_now - current_playtime).total_seconds()
+            logger.info('distance = %s' % (distance))
+            if distance > 300:
                 client = new_mpd_client()
                 playlistinfo = playlistinfo_objects(client.playlistinfo())
                 current_track = get_current_track(playlistinfo, dt_now)
