@@ -160,10 +160,11 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
         try:
             client = new_mpd_client()
             client.clear()
+            client.repeat(1)
             client.load(current)
             client.play()
-        except:
-            pass
+        except Exception as es:
+            logger.error(es)
 
 
 
