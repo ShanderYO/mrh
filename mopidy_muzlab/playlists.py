@@ -157,6 +157,8 @@ class MuzlabPlaylistsProvider(backend.PlaylistsProvider):
             self.make_playlist_for_link()
             current = 'link'
 
+        print(self.backend.core)
+
         try:
             client = new_mpd_client()
             client.clear()
