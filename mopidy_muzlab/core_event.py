@@ -47,12 +47,19 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         self._playlists_dir = ext_config['playlists_dir']
         self._cast_type = ext_config['cast_type']
         self._playlist = ext_config['playlist']
+        self.core = core
 
     def track_playback_ended(self, tl_track, time_position):
     	pass
 
 	def tracklist_changed(self):
 		pass
+
+    def get_playlist(self, uri):
+        return self.core.playlists.lookup(uri).get()
+
+    def load_playlist(self, playlist, playlist_slice=slice(0, None)):
+        self.core.tracklist.add(playlist.tracks[playlist_slice]).get()
 
     def playback_state_changed(self, old_state, new_state):
         if self._cast_type == 'playlist':
