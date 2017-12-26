@@ -152,11 +152,12 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             current = 'link'
         try:
             client = new_mpd_client()
-            if client.status()['state'] != 'play':
-                client.clear()
+            #if client.status()['state'] != 'play':
+            client.clear()
+            if current == 'link':
                 client.repeat(1)
-                client.load(current)
-                client.play()
+            client.load(current)
+            client.play()
         except Exception as es:
             logger.error(es)
 
