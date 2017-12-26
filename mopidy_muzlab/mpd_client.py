@@ -6,7 +6,7 @@ from .repeating_timer import RepeatingTimer
 import logging
 logger = logging.getLogger(__name__)
 
-mpd_host = 'localhost'
+mpd_host = '127.0.0.1'
 mpd_port = 6600
 
 def new_mpd_client():
