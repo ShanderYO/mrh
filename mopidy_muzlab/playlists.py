@@ -74,7 +74,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         entry = [e for e in entry if len(e) == 2 and
                                      e[0].decode('utf-8').startswith('#EXTINF') and
                                      e[1].decode('utf-8').endswith('mp3\n') and
-                                     os.path.exists(self.get_file_name(e))
+                                     os.path.exists(self.get_file_name(e)) and
+                                     os.stat(self.get_file_name(e)).st_size > 1024
                                      ]
         with open(path, 'wb') as f:
             f.write(playlist_type)
@@ -133,34 +134,64 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def make_playlist_for_link(self):
         link = self._link
-        path = os.path.join(self._playlists_dir, 'link.m3u')
-        with open(path, 'wb') as f:
-            f.write('#EXTM3U\n')
-            f.write('#EXTINF:-1,Link\n')
-            f.write(link+'\n')
+        path_link = os.path.join(self._playlists_dir, 'link.m3u')
+        path_main = os.path.join(self._playlists_dir, 'main.m3u')
+        lines = ['#EXTM3U\n','#EXTINF:-1,Link\n',link+'\n']
+        logger.info(lines) 
+        with open(path_main, 'r') as fm:
+            for i,line in enumerate(fm.readlines()[1:]):
+                logger.info(line)
+                lines.append(line)
+                if i%2 != 0:
+                    continue
+                lines.append('#EXTINF:-1,Link\n')
+                lines.append(link+'\n')
+        # logger.info(lines) 
+        with open(path_link, 'wb') as fl:
+            for line in lines:
+                fl.write(line)
         return True
 
+    def clear(self, client):
+        while True:
+            status = client.status()
+            if status['playlistlength'] in ['0', '1']:
+                break
+            if hasattr(status, 'song') and status['song'] != '0':
+                client.delete(0)
+            else:
+                client.delete(1)
+
     def refresh(self):
-        if self._cast_type == 'playlist':
+        try:
             playlist = self._playlist.split(',')[0].split(':')[0]
             self.download_playlist(playlist=playlist, filename='main.m3u')
             playlist_second = self._playlist.split(',')[1].split(':')[0]
             self.download_playlist(playlist=playlist_second, filename='second.m3u')
+        except:
+            pass
+        if self._cast_type == 'playlist':
             current = get_correct_playlist(self._playlist)
+            repeat = 0
         elif self._cast_type == 'link':
             self.make_playlist_for_link()
             current = 'link'
+            repeat = 1
         try:
-            client = new_mpd_client()
-            #if client.status()['state'] != 'play':
-            client.clear()
-            if current == 'link':
-                client.repeat(1)
+            client = new_mpd_client()    
+            self.clear(client)
+            client.repeat(repeat)
             client.load(current)
-            client.play()
+            status = client.status()
+            try:
+                song = int(status['song'])
+            except:
+                song = 0
+            if current == 'link':
+                client.load('main')
+            if status['state'] != 'play':
+                client.play()
+            if status['state'] == 'play' and current == 'link' and song not in [0,1]:
+                client.play(0)
         except Exception as es:
-            logger.error(es)
-
-        
-
-        
+            logger.error(es) 
