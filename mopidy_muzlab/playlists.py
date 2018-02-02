@@ -118,7 +118,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.error('Error Read timeout occured')
         except requests.exceptions.ConnectTimeout:
             return logger.error('Error Connection timeout occured')
-        except requests.exception.ConnectionError as error:
+        except requests.exceptions.ConnectionError as error:
             return logger.error(error)
 
         if r.status_code == 200:
