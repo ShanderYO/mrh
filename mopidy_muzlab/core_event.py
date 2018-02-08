@@ -55,11 +55,6 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
 	def tracklist_changed(self):
 		pass
 
-    def gstreamer_error(self, error_msg, debug_msg):
-        logger.info('Streamer Eruoror %s : %s' % (error_msg, debug_msg))
-        client = new_mpd_client()        
-        client.next()
-
     def get_playlist(self, uri):
         return self.core.playlists.lookup(uri).get()
 

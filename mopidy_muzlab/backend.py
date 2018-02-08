@@ -36,9 +36,9 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self._playlist_lock = Lock()
         # do not run playlist refresh around library refresh
         self._refresh_threshold = self._refresh_playlists_rate * 0.3
+        self.playlists = MuzlabPlaylistsProvider(self, config)
         self.audio = MuzlabAudio(config)
         self.playback = backend.PlaybackProvider(audio, self)
-        self.playlists = MuzlabPlaylistsProvider(self, config)
 
     def on_start(self):
         logger.info('Start mopidy!!!')

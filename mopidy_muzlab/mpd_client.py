@@ -9,8 +9,8 @@ mpd_port = 6600
 
 def new_mpd_client():
     client = MPDClient()
-    client.timeout = 60
-    client.idletimeout = 120
+    client.timeout = 20
+    client.idletimeout = 20
     c = 0
     while True:
         try:
