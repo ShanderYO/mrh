@@ -8,7 +8,10 @@ import logging
 import operator
 import os
 import requests
+import threading
 import shutil
+from concurrent.futures import Future, ThreadPoolExecutor, wait, as_completed
+from collections import deque
 from .mpd_client import new_mpd_client
 from datetime import datetime as dt
 from mopidy import backend
@@ -20,15 +23,20 @@ from . import translator
 logger = logging.getLogger(__name__)
 
 def get_correct_playlist(_playlist):
-        current_hour = int(dt.now().strftime('%H'))
-        periud = _playlist.split(',')[0].split(':')[1].split('-')
-        periud = range(int(periud[0]), int(periud[1]))
-        if current_hour in periud:
-            logger.info('main playlist')
+        playlists = _playlist.split(',')
+        if len(playlists) == 1:
             return 'main'
-        else:
-            logger.info('second playlist')
-            return 'second'
+        current_hour = int(dt.now().strftime('%H'))
+        for n, playlist in enumerate(_playlist.split(',')):
+            day = deque(i+1 for i in xrange(24))
+            start, end = playlist.split(':')[1].split('-')
+            day.rotate(24-int(start)+1)
+            day = list(day)
+            periud = day[:day.index(int(end))]
+            if current_hour in periud:
+                plname = 'main%s'%str(n)
+                logger.info('Current playlist %s'%plname)
+                return plname
 
 class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
@@ -61,33 +69,38 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         if not playlist_number.startswith('#PLAYLIST'):
             return
         lines = infile.readlines()
-        entry = []
+        entry, notexists = [], []
         for i,line in enumerate(lines):
             if i%2 == 1:
                 continue
             try:
-                n = [line, lines[i+1]]
-                entry.append(n)
+                e = [line, lines[i+1]]
+                if e[0].decode('utf-8').startswith('#EXTINF') and e[1].decode('utf-8').endswith('mp3\n'):
+                    filename = self.get_file_name(e)
+                    is_exist = os.path.exists(filename)
+                    if is_exist and os.stat(filename).st_size > 1024:
+                        entry.append(e)
+                    elif is_exist and not os.stat(filename).st_size > 1024:
+                        os.remove(filename)
+                        notexists.append(e)
+                    else:
+                        notexists.append(e)
             except IndexError:
                 pass
-        self.sync_tracks(entry)
-        entry = [e for e in entry if len(e) == 2 and
-                                     e[0].decode('utf-8').startswith('#EXTINF') and
-                                     e[1].decode('utf-8').endswith('mp3\n') and
-                                     os.path.exists(self.get_file_name(e))
-                                     ]
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
             for e in entry:
                 f.write(e[0])
                 f.write(e[1])
+        self.sync_tracks(iter(notexists))
         return True
 
-    def sync_tracks(self, entry):
-        from concurrent.futures import ThreadPoolExecutor, wait, as_completed
-
+    def sync_tracks(self, notexists, concurrency=4):
         def download_tracks(url):
+            url = self.get_file_name(url)
+            if os.path.exists(url):
+                return
             if not os.path.exists(os.path.dirname(url)):
                 os.makedirs(os.path.dirname(url))
             try:
@@ -98,12 +111,43 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 shutil.move('/tmp/' + base_name,url)
                 logger.info(' File %s downloaded'%(url))
             except Exception as es:
-                logger.info(str(es))
+                # logger.info(str(es))
+                pass
 
-        pool = ThreadPoolExecutor(2)
-        tracks_not_exists = [self.get_file_name(e) for e in entry if len(e) == 2 and not os.path.exists(self.get_file_name(e))]
-        futures = [pool.submit(download_tracks, url) for url in tracks_not_exists[:5]]
-        return [r.result() for r in as_completed(futures)]
+        def submit():
+            try:
+                obj = notexists.next()
+            except StopIteration:
+                return
+            stats['delayed'] += 1
+            future = executor.submit(download_tracks, obj)
+            future.obj = obj
+            future.add_done_callback(download_done)
+
+        def download_done(future):
+            with io_lock:
+                submit()
+                stats['delayed'] -= 1
+                stats['done'] += 1
+            if future.exception():
+                on_fail(future.exception(), future.obj)
+            if stats['delayed'] == 0:
+                result.set_result(stats)
+                
+        def cleanup(_):
+            with io_lock:
+                executor.shutdown(wait=False)
+
+        io_lock = threading.RLock()
+        executor = ThreadPoolExecutor(concurrency)
+        result = Future()
+        result.stats = stats = {'done': 0, 'delayed': 0}
+        result.add_done_callback(cleanup)
+
+        with io_lock:
+            for _ in range(concurrency):
+                submit()
+        return result
 
     def download_playlist(self, playlist, filename):
         uri = '%s/%s' % (self._playlist_url, playlist)
@@ -133,34 +177,65 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def make_playlist_for_link(self):
         link = self._link
-        path = os.path.join(self._playlists_dir, 'link.m3u')
-        with open(path, 'wb') as f:
-            f.write('#EXTM3U\n')
-            f.write('#EXTINF:-1,Link\n')
-            f.write(link+'\n')
+        path_link = os.path.join(self._playlists_dir, 'link.m3u')
+        path_main = os.path.join(self._playlists_dir, 'main.m3u')
+        lines = ['#EXTM3U\n','#EXTINF:-1,Link\n',link+'\n']
+        logger.info(lines) 
+        with open(path_main, 'r') as fm:
+            for i,line in enumerate(fm.readlines()[2:]):
+                logger.info(line)
+                lines.append(line)
+                if i%2 != 0:
+                    continue
+                if i%10==0:
+                    lines.append('#EXTINF:-1,Link\n')
+                    lines.append(link+'\n')
+        # logger.info(lines) 
+        with open(path_link, 'wb') as fl:
+            for line in lines:
+                fl.write(line)
         return True
 
+    def clear(self, client):
+        while True:
+            status = client.status()
+            if status['playlistlength'] in ['0', '1']:
+                break
+            if hasattr(status, 'song') and status['song'] != '0':
+                client.delete(0)
+            else:
+                client.delete(1)
+
     def refresh(self):
+        for n, playlist in enumerate(self._playlist.split(',')):
+            try:
+                playlist = playlist.split(':')[0]
+            except IndexError:
+                logger.warning('Playlist %s is not valid' % playlist)
+            self.download_playlist(playlist=playlist, filename='main%s.m3u'%str(n))
+
         if self._cast_type == 'playlist':
-            playlist = self._playlist.split(',')[0].split(':')[0]
-            self.download_playlist(playlist=playlist, filename='main.m3u')
-            playlist_second = self._playlist.split(',')[1].split(':')[0]
-            self.download_playlist(playlist=playlist_second, filename='second.m3u')
             current = get_correct_playlist(self._playlist)
+            repeat = 0
         elif self._cast_type == 'link':
             self.make_playlist_for_link()
             current = 'link'
+            repeat = 1
         try:
-            client = new_mpd_client()
-            #if client.status()['state'] != 'play':
-            client.clear()
-            if current == 'link':
-                client.repeat(1)
+            client = new_mpd_client()    
+            self.clear(client)
+            client.repeat(repeat)
             client.load(current)
-            client.play()
+            status = client.status()
+            try:
+                song = int(status['song'])
+            except:
+                song = 0
+            if current == 'link':
+                client.load('main')
+            if status['state'] != 'play':
+                client.play()
+            if status['state'] == 'play' and current == 'link' and song not in [0,1]:
+                client.play(0)
         except Exception as es:
-            logger.error(es)
-
-        
-
-        
+            logger.error(es) 
