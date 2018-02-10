@@ -7,12 +7,13 @@ import locale
 import logging
 import operator
 import os
+import time
 import requests
 import threading
 import shutil
-from concurrent.futures import Future, ThreadPoolExecutor, wait, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, wait, as_completed, TimeoutError
 from collections import deque
-from .mpd_client import new_mpd_client
+from .mpd_client import new_mpd_client, clear_playlist
 from datetime import datetime as dt
 from mopidy import backend
 import urllib2
@@ -87,16 +88,27 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                         notexists.append(e)
             except IndexError:
                 pass
+        exists_track = len(entry)
+        if exists_track < 10:
+            result = self.sync_tracks(iter(notexists[:10]))
+            logger.info('%s exists track' % exists_track)
+            while not result.done():
+                try:
+                    result.result(.5)
+                except TimeoutError:
+                    pass
+            entry.extend(notexists[:10])
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
             for e in entry:
                 f.write(e[0])
                 f.write(e[1])
-        self.sync_tracks(iter(notexists))
+        self.sync_tracks(iter(notexists[10:]))
         return True
 
     def sync_tracks(self, notexists, concurrency=4):
+
         def download_tracks(url):
             url = self.get_file_name(url)
             if os.path.exists(url):
@@ -130,10 +142,10 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 stats['delayed'] -= 1
                 stats['done'] += 1
             if future.exception():
-                on_fail(future.exception(), future.obj)
+                logger.error(future.exception())
             if stats['delayed'] == 0:
                 result.set_result(stats)
-                
+
         def cleanup(_):
             with io_lock:
                 executor.shutdown(wait=False)
@@ -171,7 +183,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             if(self.check_playlist(tempfile)):
                 shutil.move(tempfile, path)
             else:
-                logger.error('Download playlist is not correcty')
+                logger.warning('Download playlist is not correct')
         else:
             logger.error('Download failed')
 
@@ -196,16 +208,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 fl.write(line)
         return True
 
-    def clear(self, client):
-        while True:
-            status = client.status()
-            if status['playlistlength'] in ['0', '1']:
-                break
-            if hasattr(status, 'song') and status['song'] != '0':
-                client.delete(0)
-            else:
-                client.delete(1)
-
     def refresh(self):
         for n, playlist in enumerate(self._playlist.split(',')):
             try:
@@ -223,7 +225,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             repeat = 1
         try:
             client = new_mpd_client()    
-            self.clear(client)
+            clear_playlist(client)
+            client.consume(1)
             client.repeat(repeat)
             client.load(current)
             status = client.status()
@@ -231,8 +234,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 song = int(status['song'])
             except:
                 song = 0
-            if current == 'link':
-                client.load('main')
             if status['state'] != 'play':
                 client.play()
             if status['state'] == 'play' and current == 'link' and song not in [0,1]:

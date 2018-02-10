@@ -6,7 +6,7 @@ import os
 from datetime import datetime as dt
 from mopidy import core, audio
 import pykka
-from .mpd_client import new_mpd_client
+from .mpd_client import new_mpd_client, clear_playlist
 from .playlists import get_correct_playlist
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
             client = new_mpd_client()
             playlist = client.playlistinfo()
             if len(playlist) == 0 or client.status()['state'] == 'stop':
-                client.clear()
+                clear_playlist(client)
                 client.load(get_correct_playlist(self._playlist))            
                 client.play()
             logger.info('Playback changed: %s %s' % (old_state, new_state))
@@ -93,3 +93,4 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                 if current_track:
                     client.play(current_track.pos)
                     logger.info('Synhr play %s %s' % (current_track.id, current_track.title))
+
