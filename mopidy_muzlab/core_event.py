@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Track():
+    
     def __init__(self, id, title, artist, playtime, pos):
         self.id = id
         self.artist = artist
