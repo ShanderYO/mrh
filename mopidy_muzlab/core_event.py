@@ -8,6 +8,7 @@ from mopidy import core, audio
 import pykka
 from .mpd_client import new_mpd_client, clear_playlist
 from .playlists import get_correct_playlist
+from .crossfade import Crossfade
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,10 @@ def playlistinfo_objects(plinfo):
     return playlist
 
 def get_current_track(playlist, current_datetime):
-	for track in playlist:
-		if track.playtime < current_datetime:
-			continue
-		return track
+    for track in playlist:
+        if track.playtime < current_datetime:
+            continue
+        return track
 
 
 class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
@@ -51,13 +52,21 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         self.core = core
 
     def track_playback_ended(self, tl_track, time_position):
-    	pass
+        pass
 
-	def tracklist_changed(self):
-		pass
+    def tracklist_changed(self):
+        pass
+
+    def crossfade(self, tl_track, cut_first=True):
+        next_ = self.core.tracklist.next_track(tl_track)
+        next_uri = next_.track.uri
+        crossfade = Crossfade(track=tl_track.track.uri, next_=next_uri, 
+                                        cut_first=cut_first)
+        return crossfade.crossfade()
+
 
     def gstreamer_error(self, error_msg, debug_msg):
-        logger.info('Streamer Eruoror %s : %s' % (error_msg, debug_msg))
+        logger.info('Streamer Error %s : %s' % (error_msg, debug_msg))
         client = new_mpd_client()        
         client.next()
 
@@ -81,17 +90,17 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         logger.info('Playlists loaded!!!')
 
     def track_playback_started(self, tl_track):
-        if self._cast_type == 'playlist':
-            logger.info('Start: %s' % (tl_track.track.name))
-            current_playtime = dt.strptime(tl_track.track.name.split('start-time=')[1].split(',')[0], '%d %m %Y %H %M %S')
-            dt_now = dt.now()
-            distance = (dt_now - current_playtime).total_seconds()
-            logger.info('distance = %s' % (distance))
-            if distance > 300:
-                client = new_mpd_client()
-                playlistinfo = playlistinfo_objects(client.playlistinfo())
-                current_track = get_current_track(playlistinfo, dt_now)
-                if current_track:
-                    client.play(current_track.pos)
-                    logger.info('Synhr play %s %s' % (current_track.id, current_track.title))
-
+        pass
+        # if self._cast_type == 'playlist':
+        #     logger.info('Start: %s' % (tl_track.track.name))
+        #     current_playtime = dt.strptime(tl_track.track.name.split('start-time=')[1].split(',')[0], '%d %m %Y %H %M %S')
+        #     dt_now = dt.now()
+        #     distance = (dt_now - current_playtime).total_seconds()
+        #     logger.info('distance = %s' % (distance))
+        #     if distance > 300:
+        #         client = new_mpd_client()
+        #         playlistinfo = playlistinfo_objects(client.playlistinfo())
+        #         current_track = get_current_track(playlistinfo, dt_now)
+        #         if current_track:
+        #             client.play(current_track.pos)
+        #             logger.info('Synhr play %s %s' % (current_track.id, current_track.title))

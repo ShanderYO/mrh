@@ -17,8 +17,9 @@ from .mpd_client import new_mpd_client, clear_playlist
 from datetime import datetime as dt
 from mopidy import backend
 import urllib2
+from .utils import concatenate_filename
 from mopidy.m3u.playlists import log_environment_error, replace, M3UPlaylistsProvider
-
+from .crossfade import Crossfade
 from . import translator
 
 logger = logging.getLogger(__name__)
@@ -89,22 +90,37 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             except IndexError:
                 pass
         exists_track = len(entry)
-        if exists_track < 10:
-            result = self.sync_tracks(iter(notexists[:10]))
+        min_track_count = 15
+        if exists_track < min_track_count:
+            result = self.sync_tracks(iter(notexists[:min_track_count]))
             logger.info('%s exists track' % exists_track)
             while not result.done():
                 try:
                     result.result(.5)
                 except TimeoutError:
                     pass
-            entry.extend(notexists[:10])
+            entry.extend(notexists[:min_track_count])
+        for n, e in enumerate(entry[:min_track_count]):
+            cut_first = False if n == 0 else True
+            try:
+                next_ = entry[n+1]
+            except:
+                break
+            # logger.info('%s %s %s' % (str(n), e, next_))
+            crossfade = Crossfade(track=e[1], next_=next_[1], cut_first=cut_first)
+            crossfade.add_crossfade()
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
-            for e in entry:
+            for n, e in enumerate(entry):
+                try:
+                    path = '/tmp/crossfade/%s\n' % concatenate_filename(e[1], entry[n+1][1])
+                except IndexError:
+                    continue
+                logger.info('path %s'%path)
                 f.write(e[0])
-                f.write(e[1])
-        self.sync_tracks(iter(notexists[10:]))
+                f.write(path)
+        self.sync_tracks(iter(notexists[min_track_count:]))
         return True
 
     def sync_tracks(self, notexists, concurrency=4):

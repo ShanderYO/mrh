@@ -2,31 +2,48 @@ import os
 import subprocess
 import time
 import datetime as dt
+import logging
+from .utils import concatenate_filename
+
+logger = logging.getLogger(__name__)
 
 class Crossfade(object):
 
-	def __init__(self, track, next_, crossfade=3, out_directory='/tmp', out_file=None,
+	def __init__(self, track, next_, crossfade=3, out_directory='/tmp/crossfade/', out_file=None,
 						cut_first=False, track_duration=None, next_duration=None,
 												curve='qsin'):
-		self.track = track
-		self.next_ = next_
+		self.track = track.replace('\n', '')
+		self.next_ = next_.replace('\n', '')
 		self.cut_first = cut_first
 		self.crossfade = crossfade
 		self.track_duration = track_duration if track_duration else self.get_duration(self.track)
 		self.next_duration = next_duration if next_duration else self.get_duration(self.next_)
-		self.out_file = out_file if out_file else self.track.split('/')[-1]
+		self.out_file = out_file if out_file else concatenate_filename(self.track, self.next_)
 		self.curve = curve
-		self.output = '%s/%s' % (out_directory, self.out_file)
+		if not os.path.exists(os.path.dirname(out_directory)):
+			os.makedirs(os.path.dirname(out_directory))
+		self.output = '%s%s' % (out_directory, self.out_file)
 
 	def add_crossfade(self):
+		if (os.path.exists(self.output) 
+			or not os.path.exists(self.track) 
+			or not os.path.exists(self.next_)):
+			return
 		chunk1, chunk2 = self.split_track()
 		crossfile = self.add_crossfade_between_files()
-		out = self.concatenate_chunk()
+		self.concatenate_chunk()
 		if self.cut_first:
 			self.cut()
+		logger.info('Crossfade:%s' % self.output)
+		for f in [chunk1, chunk2, crossfile]:
+			try:
+				os.remove(f)
+			except:
+				pass
 		return self.output
 
 	def split_track(self):
+		logger.info(str(self.track_duration))
 		splitting = self.track_duration - self.crossfade
 		chunk1 = '/tmp/%s' % self.track.split('/')[-1].replace('.mp3','.chunk1.mp3')
 		chunk2 = '/tmp/%s' % self.track.split('/')[-1].replace('.mp3','.chunk2.mp3')
@@ -38,7 +55,7 @@ class Crossfade(object):
 		return [self.chunk1, self.chunk2]
 
 	def cut(self):
-		command = 'ffmpeg -y -ss %s -i %s -c copy %s' % (self.crossfade, self.track, track)
+		command = 'ffmpeg -y -ss %s -i %s -c copy %s' % (self.crossfade, self.output, '%s.cut' % self.output)
 		self.run(command)
 		
 	def add_crossfade_between_files(self):
@@ -55,12 +72,6 @@ class Crossfade(object):
 		command = 'ffmpeg -y -i concat:%s|%s -c copy %s' % (self.chunk1, 
 													self.crossfile, self.output)
 		self.run(command)
-
-	def file_exists_timeout():
-		'''
-			Will read decorator for timeout if chunk files not exists yet
-		'''
-		pass
 
 	def get_duration(self, track):
 		result = subprocess.Popen(["ffprobe", track],
