@@ -107,7 +107,15 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             except:
                 break
             # logger.info('%s %s %s' % (str(n), e, next_))
-            crossfade = Crossfade(track=e[1], next_=next_[1], cut_first=cut_first)
+            try:
+                track_duration = int(e[0].split('duration=')[1].split(',')[0])/1000
+            except (IndexError, ValueError, TypeError):
+                track_duration = None
+            try:
+                next_duration = int(next_[0].split('duration=')[1].split(',')[0])/1000
+            except (IndexError, ValueError, TypeError):
+                next_duration = None
+            crossfade = Crossfade(track=e[1], next_=next_[1], cut_first=cut_first, track_duration=track_duration)
             crossfade.add_crossfade()
         with open(path, 'wb') as f:
             f.write(playlist_type)
