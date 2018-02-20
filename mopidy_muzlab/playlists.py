@@ -17,7 +17,7 @@ from .mpd_client import new_mpd_client, clear_playlist
 from datetime import datetime as dt
 from mopidy import backend
 import urllib2
-from .utils import concatenate_filename
+from .utils import concatenate_filename, get_duration, get_file_name
 from mopidy.m3u.playlists import log_environment_error, replace, M3UPlaylistsProvider
 from .crossfade import Crossfade
 from . import translator
@@ -40,6 +40,12 @@ def get_correct_playlist(_playlist):
                 logger.info('Current playlist %s'%plname)
                 return plname
 
+def check_line(line):
+    if (line[0].decode('utf-8').startswith('#EXTINF') 
+            and line[1].decode('utf-8').endswith('mp3\n')):
+        return True
+
+
 class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def __init__(self, backend, config):
@@ -56,9 +62,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self._default_extension = ext_config['default_extension']
         self.backend = backend
 
-    def get_file_name(self,e):
-        return e[1].replace('\n', '')
-
     def check_playlist(self, path):
         try:
             assert(type(path) == '_io.TextIOWrapper')
@@ -70,71 +73,60 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         playlist_number = infile.readline()
         if not playlist_number.startswith('#PLAYLIST'):
             return
-        lines = infile.readlines()
-        entry, notexists = [], []
-        for i,line in enumerate(lines):
-            if i%2 == 1:
-                continue
+        lines = []
+        readlines = infile.readlines()
+        for n, line in enumerate(readlines):
             try:
-                e = [line, lines[i+1]]
-                if e[0].decode('utf-8').startswith('#EXTINF') and e[1].decode('utf-8').endswith('mp3\n'):
-                    filename = self.get_file_name(e)
-                    is_exist = os.path.exists(filename)
-                    if is_exist and os.stat(filename).st_size > 1024:
-                        entry.append(e)
-                    elif is_exist and not os.stat(filename).st_size > 1024:
-                        os.remove(filename)
-                        notexists.append(e)
-                    else:
-                        notexists.append(e)
+                next_ = readlines[n+1]
+            except:
+                break
+            if n % 2 == 0 and check_line((line, next_)):
+                lines.append((line, next_))
+        exists = []
+        for n, line in enumerate(lines):
+            filename = get_file_name(line[1])
+            if not os.path.exists(filename) or os.stat(filename).st_size <= 1024:
+                try:
+                    os.remove(filename)
+                except OSError:
+                    pass
+                break
+            try:
+                next_line = lines[n+1]
             except IndexError:
-                pass
-        exists_track = len(entry)
+                break
+            if not os.path.exists('/tmp/crossfade/%s\n' % concatenate_filename(line[1], next_line[1])):
+                break
+            exists.append(line)
         min_track_count = 15
-        if exists_track < min_track_count:
-            result = self.sync_tracks(iter(notexists[:min_track_count]))
-            logger.info('%s exists track' % exists_track)
+        if len(exists) < min_track_count:
+            result = self.sync_tracks(lines[:min_track_count])
+            # logger.info('%s exists track' % str(len(exists)))
             while not result.done():
                 try:
                     result.result(.5)
                 except TimeoutError:
                     pass
-            entry.extend(notexists[:min_track_count])
-        for n, e in enumerate(entry[:min_track_count]):
-            cut_first = False if n == 0 else True
-            try:
-                next_ = entry[n+1]
-            except:
-                break
-            # logger.info('%s %s %s' % (str(n), e, next_))
-            try:
-                track_duration = int(e[0].split('duration=')[1].split(',')[0])/1000
-            except (IndexError, ValueError, TypeError):
-                track_duration = None
-            try:
-                next_duration = int(next_[0].split('duration=')[1].split(',')[0])/1000
-            except (IndexError, ValueError, TypeError):
-                next_duration = None
-            crossfade = Crossfade(track=e[1], next_=next_[1], cut_first=cut_first, track_duration=track_duration)
-            crossfade.add_crossfade()
+            exists = lines[:min_track_count]
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
-            for n, e in enumerate(entry):
+            for n, e in enumerate(exists):
                 try:
-                    path = '/tmp/crossfade/%s\n' % concatenate_filename(e[1], entry[n+1][1])
+                    next_ = exists[n+1]
                 except IndexError:
-                    continue
-                logger.info('path %s'%path)
+                    break
+                path = '/tmp/crossfade/%s\n' % concatenate_filename(e[1], next_[1])
                 f.write(e[0])
                 f.write(path)
-        self.sync_tracks(iter(notexists[min_track_count:]))
+        self.sync_tracks(lines)
         return True
 
-    def sync_tracks(self, notexists, concurrency=4):
-
-        def download_tracks(url):
-            url = self.get_file_name(url)
+    def sync_tracks(self, lines, concurrency=4):
+        def download_tracks(obj):
+            url = obj[1][1].replace('\n', '')
+            n = obj[0]
+            load = False
             if os.path.exists(url):
                 return
             if not os.path.exists(os.path.dirname(url)):
@@ -146,13 +138,29 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     output.write(mp3file.read())
                 shutil.move('/tmp/' + base_name,url)
                 logger.info(' File %s downloaded'%(url))
+                load = True
             except Exception as es:
                 # logger.info(str(es))
                 pass
+            if load and n > 0:
+                prev = lines[n-1]
+                add_crossfade(prev, obj[1], n-1)
+
+        def add_crossfade(track, next_, n):
+            cut_first = False if n == 0 else True
+            try:
+                track_duration = int(track[0].decode('utf-8').split('duration=')[1].split(',')[0])/1000
+            except (IndexError, ValueError, TypeError):
+                track_duration = get_duration(track[1])
+            if not track_duration:
+                logger.error('Failed get track duration %s' % track)
+                return
+            crossfade = Crossfade(track=track[1], next_=next_[1], cut_first=cut_first, track_duration=track_duration)
+            crossfade.add_crossfade()
 
         def submit():
             try:
-                obj = notexists.next()
+                obj = iterator.next()
             except StopIteration:
                 return
             stats['delayed'] += 1
@@ -174,6 +182,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             with io_lock:
                 executor.shutdown(wait=False)
 
+        iterator = enumerate(lines)
         io_lock = threading.RLock()
         executor = ThreadPoolExecutor(concurrency)
         result = Future()

@@ -9,15 +9,13 @@ logger = logging.getLogger(__name__)
 
 class Crossfade(object):
 
-	def __init__(self, track, next_, crossfade=3, out_directory='/tmp/crossfade/', out_file=None,
-						cut_first=False, track_duration=None, next_duration=None,
-												curve='qsin'):
+	def __init__(self, track, next_, crossfade=5, out_directory='/tmp/crossfade/', out_file=None,
+						cut_first=False, track_duration=None, curve='qsin'):
 		self.track = track.replace('\n', '')
 		self.next_ = next_.replace('\n', '')
 		self.cut_first = cut_first
 		self.crossfade = crossfade
-		self.track_duration = track_duration if track_duration else self.get_duration(self.track)
-		self.next_duration = next_duration if next_duration else self.get_duration(self.next_)
+		self.track_duration = track_duration
 		self.out_file = out_file if out_file else concatenate_filename(self.track, self.next_)
 		self.curve = curve
 		if not os.path.exists(os.path.dirname(out_directory)):
@@ -26,8 +24,9 @@ class Crossfade(object):
 
 	def add_crossfade(self):
 		if (os.path.exists(self.output) 
-			or not os.path.exists(self.track) 
-			or not os.path.exists(self.next_)):
+			or not os.path.exists(self.track)  
+			or not os.path.exists(self.next_)
+			or not self.track_duration):
 			return
 		chunk1, chunk2 = self.split_track()
 		crossfile = self.add_crossfade_between_files()
@@ -43,7 +42,6 @@ class Crossfade(object):
 		return self.output
 
 	def split_track(self):
-		logger.info(str(self.track_duration))
 		splitting = self.track_duration - self.crossfade
 		chunk1 = '/tmp/%s' % self.track.split('/')[-1].replace('.mp3','.chunk1.mp3')
 		chunk2 = '/tmp/%s' % self.track.split('/')[-1].replace('.mp3','.chunk2.mp3')
@@ -72,24 +70,6 @@ class Crossfade(object):
 		command = 'ffmpeg -y -i concat:%s|%s -c copy %s' % (self.chunk1, 
 													self.crossfile, self.output)
 		self.run(command)
-
-	def get_duration(self, track):
-		result = subprocess.Popen(["ffprobe", track],
-			stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-		lines = [x for x in result.stdout.readlines() if 'Duration' in x]
-		if lines:
-			try:
-				line = lines[0].split(',')[0].split('Duration: ')[1]
-			except KeyError:
-				return
-			try:
-				data = dt.datetime.strptime(line,'%H:%m:%S.%f')
-				data = tuple(int(i) for i in data.strftime('%H %m %S %f').split())
-				duration = dt.timedelta(hours=data[0], minutes=data[1], 
-											seconds=data[2], microseconds=data[3]).total_seconds()
-			except ValueError:
-				return
-			return duration
 
 	def run(self, command):
 		r = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr = subprocess.PIPE)
