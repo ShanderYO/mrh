@@ -17,6 +17,7 @@ class Crossfade(object):
 		self.cut_first = cut_first
 		self.crossfade = crossfade
 		self.track_duration = track_duration
+		self.out_directory = out_directory
 		self.out_file = out_file if out_file else concatenate_filename(self.track, self.next_)
 		self.curve = curve
 		if not os.path.exists(os.path.dirname(out_directory)):
