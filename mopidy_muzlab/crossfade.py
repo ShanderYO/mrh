@@ -4,6 +4,7 @@ import time
 import datetime as dt
 import logging
 from .utils import concatenate_filename
+from .mpd_client import new_mpd_client
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class Crossfade(object):
 				os.remove(f)
 			except:
 				pass
+		self.remove_old_file()
 		return self.output
 
 	def split_track(self):
@@ -74,3 +76,13 @@ class Crossfade(object):
 	def run(self, command):
 		r = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr = subprocess.PIPE)
 		out, err = r.communicate()
+
+	def remove_old_file(self):
+		files = os.listdir(self.out_directory)
+		file_count = len(files)
+		if file_count >= 100:
+			client = new_mpd_client()
+			playlist = [p['file'].replace('file://%s' % self.out_directory, '') 
+									for p in c.playlistinfo()]
+			[os.remove('%s%s' % (self.out_directory, file)) 
+										for file in files if file in playlist]

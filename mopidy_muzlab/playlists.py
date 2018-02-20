@@ -126,23 +126,22 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         def download_tracks(obj):
             url = obj[1][1].replace('\n', '')
             n = obj[0]
-            load = False
-            if os.path.exists(url):
-                return
-            if not os.path.exists(os.path.dirname(url)):
-                os.makedirs(os.path.dirname(url))
-            try:
+            load = True
+            if not os.path.exists(url):
+                load = False
+                if not os.path.exists(os.path.dirname(url)):
+                    os.makedirs(os.path.dirname(url))
                 base_name = os.path.basename(url)
                 mp3file = urllib2.urlopen('http://f.muz-lab.ru/'+ base_name)
-                with open('/tmp/' + base_name, 'wb') as output:
-                    output.write(mp3file.read())
-                shutil.move('/tmp/' + base_name,url)
-                logger.info(' File %s downloaded'%(url))
-                load = True
-            except Exception as es:
-                # logger.info(str(es))
-                pass
-            if load and n > 0:
+                try:
+                    with open('/tmp/' + base_name, 'wb') as output:
+                        output.write(mp3file.read())
+                    shutil.move('/tmp/' + base_name,url)
+                    logger.info(' File %s downloaded'%(url))
+                    load = True
+                except Exception as es:
+                    logger.info(str(es))
+            if load and n > 0 and n < 10:
                 prev = lines[n-1]
                 add_crossfade(prev, obj[1], n-1)
 
