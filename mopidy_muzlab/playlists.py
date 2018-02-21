@@ -24,6 +24,11 @@ from . import translator
 
 logger = logging.getLogger(__name__)
 
+def get_next(track):
+    client = new_mpd_client()
+    playlist = client.playlistinfo()
+    return playlist[int(track['pos'])+1]
+
 def get_correct_playlist(_playlist):
         playlists = _playlist.split(',')
         if len(playlists) == 1:
@@ -146,7 +151,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 add_crossfade(prev, obj[1], n-1)
 
         def add_crossfade(track, next_, n):
-            cut_first = False if n == 0 else True
+            cut_start = False if n == 0 else True
             try:
                 track_duration = int(track[0].decode('utf-8').split('duration=')[1].split(',')[0])/1000
             except (IndexError, ValueError, TypeError):
@@ -154,7 +159,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             if not track_duration:
                 logger.error('Failed get track duration %s' % track)
                 return
-            crossfade = Crossfade(track=track[1], next_=next_[1], cut_first=cut_first, track_duration=track_duration)
+            crossfade = Crossfade(track=track[1], next_=next_[1], cut_start=cut_start, track_duration=track_duration)
             crossfade.add_crossfade()
 
         def submit():
