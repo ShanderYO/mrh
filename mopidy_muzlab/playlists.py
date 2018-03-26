@@ -30,22 +30,22 @@ def get_next(track):
     return playlist[int(track['pos'])+1]
 
 def get_correct_playlist(_playlist):
-        playlists = _playlist.split(',')
-        if len(playlists) == 1:
-            return 'main'
-        current_hour = int(dt.now().strftime('%H'))
-        if current_hour == 0:
-            current_hour = 24
-        for n, playlist in enumerate(_playlist.split(',')):
-            day = deque(i+1 for i in xrange(24))
-            start, end = playlist.split(':')[1].split('-')
-            day.rotate(24-int(start)+1)
-            day = list(day)
-            periud = day[:day.index(int(end))]
-            if current_hour in periud:
-                plname = 'main%s'%str(n)
-                logger.info('Current playlist %s'%plname)
-                return plname
+    playlists = _playlist.split(',')
+    if len(playlists) == 1:
+        return 'main'
+    current_hour = int(dt.now().strftime('%H'))
+    if current_hour == 0:
+        current_hour = 24
+    for n, playlist in enumerate(_playlist.split(',')):
+        day = deque(i+1 for i in xrange(24))
+        start, end = playlist.split(':')[1].split('-')
+        day.rotate(24-int(start)+1)
+        day = list(day)
+        periud = day[:day.index(int(end))]
+        if current_hour in periud:
+            plname = 'main%s'%str(n)
+            logger.info('Current playlist %s'%plname)
+            return plname
 
 def check_line(line):
     if (line[0].decode('utf-8').startswith('#EXTINF') 
@@ -61,7 +61,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def __init__(self, backend, config):
         super(MuzlabPlaylistsProvider, self).__init__(backend, config)
-
         ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
@@ -94,7 +93,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             entry = (line, file_path)
             if not check_line((line, file_path)):
                 continue
-            filename = get_file_name(line)
+            filename = get_file_name(entry)
             if not os.path.exists(filename) or os.stat(filename).st_size <= 1024:
                 try:
                     os.remove(filename)
@@ -112,9 +111,9 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     continue
             exists.append(entry)
         min_track_count = 10
+        logger.info('%s exists track' % str(len(exists)))
         if len(exists) < min_track_count:
             result = self.sync_tracks(not_exists[:min_track_count], is_crossfade=self._crossfade)
-            logger.info('%s exists track' % str(len(exists)))
             while not result.done():
                 try:
                     result.result(.5)
