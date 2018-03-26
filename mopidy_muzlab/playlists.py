@@ -34,6 +34,8 @@ def get_correct_playlist(_playlist):
         if len(playlists) == 1:
             return 'main'
         current_hour = int(dt.now().strftime('%H'))
+        if current_hour == 0:
+            current_hour = 24
         for n, playlist in enumerate(_playlist.split(',')):
             day = deque(i+1 for i in xrange(24))
             start, end = playlist.split(':')[1].split('-')
