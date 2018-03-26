@@ -50,6 +50,10 @@ def check_line(line):
             and line[1].decode('utf-8').endswith('mp3\n')):
         return True
 
+def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade'):
+    return '%s/%s\n' % (crossfade_directory, concatenate_filename(path, next_path))
+
+
 
 class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
@@ -61,6 +65,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
         self._default_encoding = ext_config['default_encoding']
         self._playlist = ext_config['playlist']
+        self._crossfade = ext_config['crossfade'] 
         self._cast_type = ext_config['cast_type']
         self._link = ext_config['link']
         self._playlist_url = ext_config['playlist_url']
@@ -68,51 +73,52 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self.backend = backend
 
     def check_playlist(self, path):
-        try:
-            assert(type(path) == '_io.TextIOWrapper')
-        except AssertionError:
-            infile = open(path,'r')
+        infile = open(path, 'r')
         playlist_type = infile.readline()
+        playlist_number = infile.readline()
+        readlines = infile.readlines()
         if not playlist_type.startswith('#EXTM3U'):
             return
-        playlist_number = infile.readline()
         if not playlist_number.startswith('#PLAYLIST'):
             return
-        lines = []
-        readlines = infile.readlines()
+        exists, not_exists, not_crossfade = [], [], []
         for n, line in enumerate(readlines):
+            if n % 2 != 0:
+                continue
             try:
-                next_ = readlines[n+1]
-            except:
+                file_path = readlines[n+1]
+            except IndexError:
                 break
-            if n % 2 == 0 and check_line((line, next_)):
-                lines.append((line, next_))
-        exists = []
-        for n, line in enumerate(lines):
-            filename = get_file_name(line[1])
+            entry = (line, file_path)
+            if not check_line((line, file_path)):
+                continue
+            filename = get_file_name(line)
             if not os.path.exists(filename) or os.stat(filename).st_size <= 1024:
                 try:
                     os.remove(filename)
                 except OSError:
                     pass
-                break
-            try:
-                next_line = lines[n+1]
-            except IndexError:
-                break
-            if not os.path.exists('/tmp/crossfade/%s\n' % concatenate_filename(line[1], next_line[1])):
-                break
-            exists.append(line)
-        min_track_count = 15
+                not_exists.append(entry)
+                continue
+            if self._crossfade:
+                try:
+                    next_file_path = readlines[n+2]
+                except IndexError:
+                    break
+                if not os.path.exists(get_crossfade_file_path(file_path, next_file_path)):
+                    not_exists.append(entry)
+                    continue
+            exists.append(entry)
+        min_track_count = 10
         if len(exists) < min_track_count:
-            result = self.sync_tracks(lines[:min_track_count])
-            # logger.info('%s exists track' % str(len(exists)))
+            result = self.sync_tracks(not_exists[:min_track_count], is_crossfade=self._crossfade)
+            logger.info('%s exists track' % str(len(exists)))
             while not result.done():
                 try:
                     result.result(.5)
                 except TimeoutError:
                     pass
-            exists = lines[:min_track_count]
+            exists = not_exists[:min_track_count]
         with open(path, 'wb') as f:
             f.write(playlist_type)
             f.write(playlist_number)
@@ -121,13 +127,16 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     next_ = exists[n+1]
                 except IndexError:
                     break
-                path = '/tmp/crossfade/%s\n' % concatenate_filename(e[1], next_[1])
+                if self._crossfade:
+                    path = get_crossfade_file_path(e[1], next_[1])
+                else:
+                    path = e[1]
                 f.write(e[0])
                 f.write(path)
-        self.sync_tracks(lines)
+        self.sync_tracks(not_exists)
         return True
 
-    def sync_tracks(self, lines, concurrency=4):
+    def sync_tracks(self, lines, concurrency=4, is_crossfade=False):
         def download_tracks(obj):
             url = obj[1][1].replace('\n', '')
             n = obj[0]
@@ -146,7 +155,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     load = True
                 except Exception as es:
                     logger.info(str(es))
-            if load and n > 0 and n < 10:
+            if is_crossfade and load and n > 0:
                 prev = lines[n-1]
                 add_crossfade(prev, obj[1], n-1)
 

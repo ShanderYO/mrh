@@ -28,6 +28,7 @@ class MuzlabExtension(ext.Extension):
         schema['default_encoding'] = config.String()
         schema['default_extension'] = config.String(choices=['.m3u', '.m3u8'])
         schema['playlists_dir'] = config.Path(optional=True)
+        schema['crossfade'] = config.Boolean(optional=False)
         schema['playlist_url'] = config.String()
         schema['playlist'] = config.String()
         schema['cast_type'] = config.String()
