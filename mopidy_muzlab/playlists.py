@@ -53,7 +53,7 @@ def check_line(line):
         return True
 
 def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade'):
-    return '%s/%s\n' % (crossfade_directory, concatenate_filename(path, next_path))
+    return '%s/%s' % (crossfade_directory, concatenate_filename(path, next_path))
 
 
 
@@ -82,7 +82,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return
         if not playlist_number.startswith('#PLAYLIST'):
             return
-        exists, not_exists, not_crossfade = [], [], []
+        exists, not_exists = [], []
         for n, line in enumerate(readlines):
             if n % 2 != 0:
                 continue
@@ -103,10 +103,12 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 continue
             if self._crossfade:
                 try:
-                    next_file_path = readlines[n+2]
+                    next_file_path = readlines[n+3]
                 except IndexError:
                     break
-                if not os.path.exists(get_crossfade_file_path(file_path, next_file_path)):
+                cross_file = get_crossfade_file_path(filename.decode('utf-8'), 
+                            next_file_path.decode('utf-8').replace('\n', ''))
+                if not os.path.exists(cross_file):
                     not_exists.append(entry)
                     continue
             exists.append(entry)
@@ -133,7 +135,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 else:
                     path = e[1]
                 f.write(e[0])
-                f.write(path)
+                f.write('%s\n' % path)
         self.sync_tracks(not_exists)
         return True
 

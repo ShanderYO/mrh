@@ -99,7 +99,6 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                 cross_file = get_crossfade_file_path(second, third)
                 duration = int(tl_second_track.track.name.split('duration=')[1].split(',')[0])
                 if not os.path.exists(cross_file):
-                    logger.info('cross_file: %s' % (cross_file))
                     crossfade = Crossfade(track=second, next_=third, track_duration=duration)
                     crossfade.add_crossfade()
 

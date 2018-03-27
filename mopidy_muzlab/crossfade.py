@@ -37,7 +37,7 @@ class Crossfade(object):
 		# logger.info('cut: %s' % self.cut_start)
 		if self.cut_start:
 			self.cut()
-		# logger.info('Crossfade:%s' % self.output)
+		logger.info('Crossfade:%s' % self.output)
 		for f in [chunk1, chunk2, crossfile, '%s.tmp' % self.output]:
 			try:
 				os.remove(f)
