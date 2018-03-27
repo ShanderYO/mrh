@@ -53,7 +53,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         self.core = core
 
     def track_playback_ended(self, tl_track, tl_previous, time_position):
-        if self._cast_type == 'playlist':
+        if self._cast_type == 'playlist' and self._crossfade:
             previous = tl_previous.track.uri.replace('file://', '')
             track = tl_track.track.uri.replace('file://', '')
             cross_file = get_crossfade_file_path(previous, track)
@@ -93,14 +93,15 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
     def track_playback_started(self, tl_track, tl_second_track, tl_third_track):
         if self._cast_type == 'playlist':
             logger.info('Start: %s' % (tl_track.track.name))
-            second = tl_second_track.track.uri.replace('file://', '')
-            third = tl_third_track.track.uri.replace('file://', '')
-            cross_file = get_crossfade_file_path(second, third)
-            duration = int(tl_second_track.track.name.split('duration=')[1].split(',')[0])
-            if not os.path.exists(cross_file):
-                logger.info('cross_file: %s' % (cross_file))
-                crossfade = Crossfade(track=second, next_=third, track_duration=duration)
-                crossfade.add_crossfade()
+            if self._crossfade:
+                second = tl_second_track.track.uri.replace('file://', '')
+                third = tl_third_track.track.uri.replace('file://', '')
+                cross_file = get_crossfade_file_path(second, third)
+                duration = int(tl_second_track.track.name.split('duration=')[1].split(',')[0])
+                if not os.path.exists(cross_file):
+                    logger.info('cross_file: %s' % (cross_file))
+                    crossfade = Crossfade(track=second, next_=third, track_duration=duration)
+                    crossfade.add_crossfade()
 
 
             # current_playtime = dt.strptime(tl_track.track.name.split('start-time=')[1].split(',')[0], '%d %m %Y %H %M %S')
