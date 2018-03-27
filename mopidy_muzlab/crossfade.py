@@ -34,10 +34,10 @@ class Crossfade(object):
 		chunk1, chunk2 = self.split_track()
 		crossfile = self.add_crossfade_between_files()
 		self.concatenate_chunk()
-		logger.info('cut: %s' % self.cut_start)
+		# logger.info('cut: %s' % self.cut_start)
 		if self.cut_start:
 			self.cut()
-		logger.info('Crossfade:%s' % self.output)
+		# logger.info('Crossfade:%s' % self.output)
 		for f in [chunk1, chunk2, crossfile, '%s.tmp' % self.output]:
 			try:
 				os.remove(f)
