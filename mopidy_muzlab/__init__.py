@@ -8,7 +8,7 @@ import logging
 from mopidy import config, ext
 
 
-__version__ = '0.3.5'
+__version__ = '0.3.1'
 
 logger = logging.getLogger(__name__)
 
