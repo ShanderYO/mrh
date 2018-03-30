@@ -73,6 +73,12 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self._default_extension = ext_config['default_extension']
         self.backend = backend
 
+    def create_playlist_file(entries, path):
+        with open(path, 'wb') as f:
+            for entry in enumerate(entries):
+                f.write(entry[0])
+                f.write('%s\n' % entry[1])
+
     def check_playlist(self, path):
         infile = open(path, 'r')
         playlist_type = infile.readline()
@@ -112,7 +118,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     not_exists.append(entry)
                     continue
             exists.append(entry)
-        min_track_count = 10
+        min_track_count = 30 if self._crossfade else 10
         logger.info('%s exists track' % str(len(exists)))
         if len(exists) < min_track_count:
             result = self.sync_tracks(not_exists[:min_track_count], is_crossfade=self._crossfade)
@@ -275,7 +281,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         try:
             client = new_mpd_client()    
             clear_playlist(client)
-            client.consume(1)
             client.repeat(repeat)
             client.load(current)
             status = client.status()
