@@ -13,7 +13,7 @@ import threading
 import shutil
 from concurrent.futures import Future, ThreadPoolExecutor, wait, as_completed, TimeoutError
 from collections import deque
-from .mpd_client import new_mpd_client, clear_playlist
+from .mpd_client import new_mpd_client, load_playlist
 from datetime import datetime as dt
 from mopidy import backend
 import urllib2
@@ -66,18 +66,13 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self._base_dir = ext_config['base_dir'] or self._playlists_dir
         self._default_encoding = ext_config['default_encoding']
         self._playlist = ext_config['playlist']
-        self._crossfade = ext_config['crossfade'] 
-        self._cast_type = ext_config['cast_type']
+        self._crossfade = ext_config['crossfade']
         self._link = ext_config['link']
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
+        self.last_playlist = '/home/mopidy/mopidy/playlists/last_playlist.m3u'
+        self.tmp_playlist = '/tmp/playlist.m3u'
         self.backend = backend
-
-    def create_playlist_file(entries, path):
-        with open(path, 'wb') as f:
-            for entry in enumerate(entries):
-                f.write(entry[0])
-                f.write('%s\n' % entry[1])
 
     def check_playlist(self, path):
         infile = open(path, 'r')
@@ -85,9 +80,18 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         playlist_number = infile.readline()
         readlines = infile.readlines()
         if not playlist_type.startswith('#EXTM3U'):
-            return
+            return logger.error('Playlist have incorrect format')
         if not playlist_number.startswith('#PLAYLIST'):
-            return
+            return logger.error('Playlist have incorrect format')
+        if len(readlines) < 60:
+            return logger.error('Playlist too showrt')
+        return True
+
+    def check_playlist_files(self, path):
+        infile = open(path, 'r')
+        playlist_type = infile.readline()
+        playlist_number = infile.readline()
+        readlines = infile.readlines()
         exists, not_exists = [], []
         for n, line in enumerate(readlines):
             if n % 2 != 0:
@@ -118,22 +122,25 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     not_exists.append(entry)
                     continue
             exists.append(entry)
-        min_track_count = 30 if self._crossfade else 10
-        logger.info('%s exists track' % str(len(exists)))
-        if len(exists) < min_track_count:
-            result = self.sync_tracks(not_exists[:min_track_count], is_crossfade=self._crossfade)
-            while not result.done():
-                try:
-                    result.result(.5)
-                except TimeoutError:
-                    pass
-            exists = not_exists[:min_track_count]
+        logger.info('exists: %s, not_exists: %s' % (len(exists), len(not_exists)))
+        return (exists, not_exists)
+
+    def sync_tracks(self, tracks):
+        result = self.sync_tracks_concurrency(tracks, is_crossfade=self._crossfade)
+        while not result.done():
+            try:
+                result.result(.5)
+            except TimeoutError:
+                pass
+
+    def create_playlist_file(self, tracks, filename='main.m3u'):
+        path = os.path.join(self._playlists_dir, filename)
+        playlist_type = '#EXTM3U'
         with open(path, 'wb') as f:
             f.write(playlist_type)
-            f.write(playlist_number)
-            for n, e in enumerate(exists):
+            for n, e in enumerate(tracks):
                 try:
-                    next_ = exists[n+1]
+                    next_ = tracks[n+1]
                 except IndexError:
                     break
                 if self._crossfade:
@@ -142,10 +149,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     path = e[1]
                 f.write(e[0])
                 f.write('%s\n' % path)
-        self.sync_tracks(not_exists)
-        return True
 
-    def sync_tracks(self, lines, concurrency=4, is_crossfade=False):
+    def sync_tracks_concurrency(self, lines, concurrency=4, is_crossfade=False):
         def download_tracks(obj):
             url = obj[1][1].replace('\n', '')
             n = obj[0]
@@ -216,11 +221,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 submit()
         return result
 
-    def download_playlist(self, playlist, filename):
+    def download_playlist(self, playlist):
         uri = '%s/%s' % (self._playlist_url, playlist)
-        tempfile = '/tmp/new_playlist.m3u'
-        path = os.path.join(self._playlists_dir, filename)
-
         logger.info('Download playlist !!!')
         logger.info(uri)
         try:
@@ -231,16 +233,14 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.error('Error Connection timeout occured')
 
         if r.status_code == 200:
-            with open(tempfile, 'wb') as f:
+            with open(self.tmp_playlist, 'wb') as f:
                 for chunk in r:
                     f.write(chunk)
-
-            if(self.check_playlist(tempfile)):
-                shutil.move(tempfile, path)
-            else:
-                logger.warning('Download playlist is not correct')
+            if(self.check_playlist(self.tmp_playlist)):
+                shutil.move(self.tmp_playlist, self.last_playlist)
+                return True
         else:
-            logger.error('Download failed')
+            return logger.error('Download failed')
 
     def make_playlist_for_link(self):
         link = self._link
@@ -257,40 +257,36 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 if i%10==0:
                     lines.append('#EXTINF:-1,Link\n')
                     lines.append(link+'\n')
-        # logger.info(lines) 
         with open(path_link, 'wb') as fl:
             for line in lines:
                 fl.write(line)
         return True
 
     def refresh(self):
-        for n, playlist in enumerate(self._playlist.split(',')):
-            try:
-                playlist = playlist.split(':')[0]
-            except IndexError:
-                logger.warning('Playlist %s is not valid' % playlist)
-            self.download_playlist(playlist=playlist, filename='main%s.m3u'%str(n))
-
-        if self._cast_type == 'playlist':
-            current = get_correct_playlist(self._playlist)
-            repeat = 0
-        elif self._cast_type == 'link':
-            self.make_playlist_for_link()
-            current = 'link'
-            repeat = 1
+        current = 'main'
+        repeat = 0
+        self.download_playlist(playlist=self._playlist.split(':')[0])
+        exists, not_exists = self.check_playlist_files(self.last_playlist)
+        if len(exists) <= 5:
+            self.sync_tracks(not_exists[:5])
+            exists, not_exists = self.check_playlist_files(self.last_playlist)
+        self.create_playlist_file(exists)
+        client = new_mpd_client()
+        if not client:
+            return logger.warning('Can t mpd connect')
+        client.repeat(repeat)
+        
         try:
-            client = new_mpd_client()    
-            clear_playlist(client)
-            client.repeat(repeat)
-            client.load(current)
-            status = client.status()
-            try:
-                song = int(status['song'])
-            except:
-                song = 0
+            load_playlist(client)
+        except Exception as es:
+            return logger.error(es)
+        status = client.status()
+        try:
             if status['state'] != 'play':
                 client.play()
-            if status['state'] == 'play' and current == 'link' and song not in [0,1]:
+            elif status['state'] == 'play' and current == 'link' and song not in [0,1]:
                 client.play(0)
         except Exception as es:
             logger.error(es) 
+
+

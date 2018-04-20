@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import socket
 import os
-from mpd import MPDClient
+from mpd import MPDClient, CommandError
 from .repeating_timer import RepeatingTimer
 import time
 import logging
@@ -34,12 +34,39 @@ def clear_playlist(client):
     '''
     while True:
         status = client.status()
-        if status['playlistlength'] in ['0', '1']:
+        try:
+            i = int(status['song']) + 2
+        except KeyError:
             break
-        if hasattr(status, 'song') and status['song'] != '0':
-            client.delete(0)
-        else:
-            client.delete(1)
+        try:
+            client.delete(i)
+        except CommandError:
+            break
+
+def load_playlist(client, playlist='main'):
+    clear_playlist(client)
+    client.load(playlist)
+    clear_replays(client)
+
+def clear_replays(client):
+    '''
+        Remove repitead track from playlist
+    '''
+    status = client.status()
+    try:
+        pos = int(status['song'])
+    except KeyError:
+        return
+    playlist = client.playlistinfo()
+    played, will_play = [], []
+    for entry in client.playlistinfo():
+        if int(entry['pos']) < pos:
+            played.append(entry['file'].split('/')[-1][12:])
+        elif int(entry['pos']) > pos:
+            will_play.append(entry)
+    for entry in will_play[:100]:
+        if entry['file'].split('/')[-1][12:] in played[-100:]:
+            client.deleteid(int(entry['id']))
 
 def clear_not_exists(client):
     '''
