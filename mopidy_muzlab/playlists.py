@@ -24,29 +24,6 @@ from . import translator
 
 logger = logging.getLogger(__name__)
 
-def get_next(track):
-    client = new_mpd_client()
-    playlist = client.playlistinfo()
-    return playlist[int(track['pos'])+1]
-
-def get_correct_playlist(_playlist):
-    playlists = _playlist.split(',')
-    if len(playlists) == 1:
-        return 'main'
-    current_hour = int(dt.now().strftime('%H'))
-    if current_hour == 0:
-        current_hour = 24
-    for n, playlist in enumerate(_playlist.split(',')):
-        day = deque(i+1 for i in xrange(24))
-        start, end = playlist.split(':')[1].split('-')
-        day.rotate(24-int(start)+1)
-        day = list(day)
-        periud = day[:day.index(int(end))]
-        if current_hour in periud:
-            plname = 'main%s'%str(n)
-            logger.info('Current playlist %s'%plname)
-            return plname
-
 def check_line(line):
     if (line[0].decode('utf-8').startswith('#EXTINF') 
             and line[1].decode('utf-8').endswith('mp3\n')):
@@ -54,8 +31,6 @@ def check_line(line):
 
 def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade'):
     return '%s/%s' % (crossfade_directory, concatenate_filename(path, next_path))
-
-
 
 class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
@@ -242,26 +217,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         else:
             return logger.error('Download failed')
 
-    def make_playlist_for_link(self):
-        link = self._link
-        path_link = os.path.join(self._playlists_dir, 'link.m3u')
-        path_main = os.path.join(self._playlists_dir, 'main.m3u')
-        lines = ['#EXTM3U\n','#EXTINF:-1,Link\n',link+'\n']
-        logger.info(lines) 
-        with open(path_main, 'r') as fm:
-            for i,line in enumerate(fm.readlines()[2:]):
-                logger.info(line)
-                lines.append(line)
-                if i%2 != 0:
-                    continue
-                if i%10==0:
-                    lines.append('#EXTINF:-1,Link\n')
-                    lines.append(link+'\n')
-        with open(path_link, 'wb') as fl:
-            for line in lines:
-                fl.write(line)
-        return True
-
     def refresh(self):
         current = 'main'
         repeat = 0
@@ -275,7 +230,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         if not client:
             return logger.warning('Can t mpd connect')
         client.repeat(repeat)
-        
         try:
             load_playlist(client)
         except Exception as es:
@@ -284,9 +238,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         try:
             if status['state'] != 'play':
                 client.play()
-            elif status['state'] == 'play' and current == 'link' and song not in [0,1]:
-                client.play(0)
         except Exception as es:
-            logger.error(es) 
+            logger.error(es)
+        self.sync_tracks(not_exists[:20])
 
 

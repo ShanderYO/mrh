@@ -58,11 +58,10 @@ def clear_replays(client):
     except KeyError:
         return
     playlist = client.playlistinfo()
-    played, will_play = [], []
+    played = get_played_files()
+    will_play = []
     for entry in client.playlistinfo():
-        if int(entry['pos']) < pos:
-            played.append(entry['file'].split('/')[-1][12:])
-        elif int(entry['pos']) > pos:
+        if int(entry['pos']) > pos:
             will_play.append(entry)
     for entry in will_play[:100]:
         if entry['file'].split('/')[-1][12:] in played[-100:]:
@@ -78,4 +77,28 @@ def clear_not_exists(client):
         if not os.path.exists(track['file']):
             client.delete(int(track['pos']))
             # logger.info('Track %s remove from playlist' % track['file'])
+
+def get_played_files():
+    log_file = '/var/log/mopidy/mopidy.log'
+    infile = open(log_file, 'r')
+    readlines = infile.readlines()
+    played = []
+    for n, line in enumerate(readlines):
+        if 'Start:' in line and 'file://' in line:
+            played.append(line.replace('\n', '').split('file://')[1])
+    return played
+
+def get_prev_track(client, degree=1):
+    playlistinfo = client.playlistinfo()
+    currentsong = client.currentsong()
+    if playlistinfo and currentsong and (int(currentsong['pos'])-degree) >= 0:
+        return [s for s in playlistinfo if int(s['pos']) == int(currentsong['pos'])-degree][0]
+
+def get_next_track(client, degree=1):
+    playlistinfo = client.playlistinfo()
+    currentsong = client.currentsong()
+    if (playlistinfo and currentsong and 
+                (int(currentsong['pos'])+degree) < (len(playlistinfo)-1)):
+        return [s for s in playlistinfo if int(s['pos']) == int(currentsong['pos'])+degree][0]
+
 
