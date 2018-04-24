@@ -27,7 +27,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
 
         ext_config = config['muzlab']
         self._playlists_dir = ext_config['playlists_dir']
-        self._refresh_playlists_rate = 600
+        self._refresh_playlists_rate = 300
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         self._refresh_threshold = self._refresh_playlists_rate * 0.3

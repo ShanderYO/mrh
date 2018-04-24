@@ -240,6 +240,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 client.play()
         except Exception as es:
             logger.error(es)
-        self.sync_tracks(not_exists[:20])
+        self.sync_tracks(not_exists[:10])
 
 
