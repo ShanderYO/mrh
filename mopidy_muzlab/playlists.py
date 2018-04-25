@@ -79,6 +79,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     pass
                 not_exists.append(entry)
                 continue
+            else:
+                exists.append(entry)
             if self._crossfade:
                 try:
                     next_file_path = readlines[n+3]
@@ -89,8 +91,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 if not os.path.exists(cross_file):
                     not_exists.append(entry)
                     continue
-            exists.append(entry)
-        logger.info('exists: %s, not_exists: %s' % (len(exists), len(not_exists)))
+            
+        # logger.info('exists: %s, not_exists: %s' % (len(exists), len(not_exists)))
         return (exists, not_exists, tracks)
 
     def sync_tracks(self, tracks, is_crossfade=False):
@@ -197,8 +199,10 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             r = requests.get(uri, stream=True, timeout=(5, 60))
         except requests.exceptions.ReadTimeout:
             return logger.error('Error Read timeout occured')
-        except requests.exceptions.ConnectTimeout:
+        except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:
             return logger.error('Error Connection timeout occured')
+        except Exception as es:
+            return logger.error(es)
 
         if r.status_code == 200:
             with open(self.tmp_playlist, 'wb') as f:
@@ -215,25 +219,26 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         repeat = 1
         is_download = self.download_playlist(playlist=self._playlist.split(':')[0])
         exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
-        if is_download:
+        client = new_mpd_client()
+        if not client:
+            return logger.warning('Can t mpd connect')
+        client.repeat(repeat)
+        status = client.status()
+        if is_download or status['playlistlength'] == '0':
             next_tracks = get_next_load_tracks(tracks)
             self.sync_tracks(next_tracks[:10], is_crossfade=self._crossfade)
             exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
             self.create_playlist_file(exists)
-            client = new_mpd_client()
-            if not client:
-                return logger.warning('Can t mpd connect')
-            client.repeat(repeat)
             try:
                 load_playlist(client)
             except Exception as es:
                 return logger.error(es)
-            status = client.status()
-            try:
-                if status['state'] != 'play':
-                    client.play()
-            except Exception as es:
-                logger.error(es)
-            self.sync_tracks(not_exists)
+        try:
+            if status['state'] != 'play':
+                client.play()
+        except Exception as es:
+            logger.error(es)
+        self.sync_tracks(not_exists)
+
 
 

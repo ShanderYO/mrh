@@ -85,7 +85,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                     second = cross_file.split('/')[-1][12:]
                     second = '/home/files/%s/%s/%s/%s' %(second[0:3], second[3:6], second[6:9], second)
                     try:
-                        duration = int(next_['title'].split('duration=')[1].split(',')[0])
+                        duration = int(next_['title'].decode('utf-8').split('duration=')[1].split(',')[0])
                     except IndexError:
                         duration = get_duration(current)
                     if not os.path.exists(cross_file):
