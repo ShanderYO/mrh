@@ -94,7 +94,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         return (exists, not_exists, tracks)
 
     def sync_tracks(self, tracks, is_crossfade=False):
-        result = self.sync_tracks_concurrency(tracks, is_crossfade=self._crossfade)
+        result = self.sync_tracks_concurrency(tracks, is_crossfade=is_crossfade)
         while not result.done():
             try:
                 result.result(.5)
