@@ -5,6 +5,7 @@ from mpd import MPDClient, CommandError
 from .repeating_timer import RepeatingTimer
 import time
 import logging
+from collections import deque
 mpd_host = '127.0.0.1'
 mpd_port = 6600
 
@@ -88,6 +89,10 @@ def get_played_files():
             played.append(line.replace('\n', '').split('file://')[1])
     return played
 
+def get_next_load_tracks(tracks):
+    played = get_played_files()
+    return tuple(track for track in tracks if track[1] not in played[:100])
+
 def get_prev_track(client, degree=1):
     playlistinfo = client.playlistinfo()
     currentsong = client.currentsong()
@@ -95,10 +100,20 @@ def get_prev_track(client, degree=1):
         return [s for s in playlistinfo if int(s['pos']) == int(currentsong['pos'])-degree][0]
 
 def get_next_track(client, degree=1):
-    playlistinfo = client.playlistinfo()
     currentsong = client.currentsong()
-    if (playlistinfo and currentsong and 
-                (int(currentsong['pos'])+degree) < (len(playlistinfo)-1)):
-        return [s for s in playlistinfo if int(s['pos']) == int(currentsong['pos'])+degree][0]
+    playlistinfo = client.playlistinfo()
+    if not currentsong or not playlistinfo:
+        return
+    pos = int(currentsong['pos'])
+    prev, next_ = [], []
+    for track in playlistinfo:
+        if int(track['pos']) < pos:
+            prev.append(track)
+        else:
+            next_.append(track)
+    newplaylistinfo = next_+prev
+    if newplaylistinfo:
+        return newplaylistinfo[degree]
+
 
 

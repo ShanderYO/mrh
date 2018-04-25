@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
-
-import contextlib
-import io
-import locale
 import logging
-import operator
 import os
-import time
 import requests
 import threading
 import shutil
 from concurrent.futures import Future, ThreadPoolExecutor, wait, as_completed, TimeoutError
 from collections import deque
-from .mpd_client import new_mpd_client, load_playlist
-from datetime import datetime as dt
+from .mpd_client import new_mpd_client, load_playlist, get_next_load_tracks
 from mopidy import backend
 import urllib2
 from .utils import concatenate_filename, get_duration, get_file_name
-from mopidy.m3u.playlists import log_environment_error, replace, M3UPlaylistsProvider
+from mopidy.m3u.playlists import M3UPlaylistsProvider
 from .crossfade import Crossfade
-from . import translator
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +59,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         playlist_type = infile.readline()
         playlist_number = infile.readline()
         readlines = infile.readlines()
-        exists, not_exists = [], []
+        exists, not_exists, tracks = [], [], []
         for n, line in enumerate(readlines):
             if n % 2 != 0:
                 continue
@@ -78,6 +70,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             entry = (line, file_path)
             if not check_line((line, file_path)):
                 continue
+            tracks.append(entry)
             filename = get_file_name(entry)
             if not os.path.exists(filename) or os.stat(filename).st_size <= 1024:
                 try:
@@ -98,9 +91,9 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     continue
             exists.append(entry)
         logger.info('exists: %s, not_exists: %s' % (len(exists), len(not_exists)))
-        return (exists, not_exists)
+        return (exists, not_exists, tracks)
 
-    def sync_tracks(self, tracks):
+    def sync_tracks(self, tracks, is_crossfade=False):
         result = self.sync_tracks_concurrency(tracks, is_crossfade=self._crossfade)
         while not result.done():
             try:
@@ -219,27 +212,28 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def refresh(self):
         current = 'main'
-        repeat = 0
-        self.download_playlist(playlist=self._playlist.split(':')[0])
-        exists, not_exists = self.check_playlist_files(self.last_playlist)
-        if len(exists) <= 5:
-            self.sync_tracks(not_exists[:5])
-            exists, not_exists = self.check_playlist_files(self.last_playlist)
-        self.create_playlist_file(exists)
-        client = new_mpd_client()
-        if not client:
-            return logger.warning('Can t mpd connect')
-        client.repeat(repeat)
-        try:
-            load_playlist(client)
-        except Exception as es:
-            return logger.error(es)
-        status = client.status()
-        try:
-            if status['state'] != 'play':
-                client.play()
-        except Exception as es:
-            logger.error(es)
-        self.sync_tracks(not_exists[:10])
+        repeat = 1
+        is_download = self.download_playlist(playlist=self._playlist.split(':')[0])
+        exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
+        if is_download:
+            next_tracks = get_next_load_tracks(tracks)
+            self.sync_tracks(next_tracks[:10], is_crossfade=self._crossfade)
+            exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
+            self.create_playlist_file(exists)
+            client = new_mpd_client()
+            if not client:
+                return logger.warning('Can t mpd connect')
+            client.repeat(repeat)
+            try:
+                load_playlist(client)
+            except Exception as es:
+                return logger.error(es)
+            status = client.status()
+            try:
+                if status['state'] != 'play':
+                    client.play()
+            except Exception as es:
+                logger.error(es)
+            self.sync_tracks(not_exists)
 
 
