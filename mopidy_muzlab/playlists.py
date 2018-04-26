@@ -234,7 +234,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             except Exception as es:
                 return logger.error(es)
         try:
-            if status['state'] != 'play':
+            if status['state'] != 'play' or status['time'] == '0:0':
                 client.play()
         except Exception as es:
             logger.error(es)
