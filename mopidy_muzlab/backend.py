@@ -33,8 +33,9 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self.audio = MuzlabAudio(config)
         self.playback = backend.PlaybackProvider(audio, self)
         self.playlists = MuzlabPlaylistsProvider(self, config)
-        self._observer_rate = 10
+        self._observer_rate = 5
         self._observer_lock = Lock()
+        self._observer_init = False
 
     def on_start(self):
         logger.info('Start backend!!!')
@@ -59,23 +60,28 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
 
     def _observer(self):
         with self._observer_lock:
-            try:
-                pos = self.playback.get_time_position()
+            pos = self.playback.get_time_position()
+            if pos != 0:
+                self._observer_init = True
+            if self._observer_init:
                 time.sleep(0.2)
                 pos_ = self.playback.get_time_position()
                 if pos != pos_:
                     return
-                client = new_mpd_client()
-                client.play()
-                time.sleep(0.2)
-                pos__ = self.playback.get_time_position()
-                if pos_ != pos__:
-                    return
-                load_playlist(client)
-                client.play()
-            except Exception as es:
-                logger.info(str(es))
-
+                try:
+                    client = new_mpd_client()
+                    client.play()
+                    time.sleep(0.2)
+                    pos__ = self.playback.get_time_position()
+                    if pos_ != pos__:
+                        return
+                    load_playlist(client)
+                    client.play()
+                    time.sleep(0.2)
+                    if pos__ != self.playback.get_time_position():
+                        self._refresh_playlists()
+                except Exception as es:
+                    logger.info(str(es))
 
     def _refresh_playlists(self):
         with self._playlist_lock:
