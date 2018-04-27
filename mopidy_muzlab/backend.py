@@ -33,7 +33,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self.audio = MuzlabAudio(config)
         self.playback = backend.PlaybackProvider(audio, self)
         self.playlists = MuzlabPlaylistsProvider(self, config)
-        self._observer_rate = 5
+        self._observer_rate = 10
         self._observer_lock = Lock()
         self._observer_init = False
 
