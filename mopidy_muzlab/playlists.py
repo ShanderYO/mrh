@@ -34,7 +34,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         self._default_encoding = ext_config['default_encoding']
         self._playlist = ext_config['playlist']
         self._crossfade = ext_config['crossfade']
-        self._link = ext_config['link']
         self._playlist_url = ext_config['playlist_url']
         self._default_extension = ext_config['default_extension']
         self.last_playlist = '/home/mopidy/mopidy/playlists/last_playlist.m3u'
@@ -148,10 +147,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             try:
                 track_duration = int(track[0].decode('utf-8').split('duration=')[1].split(',')[0])/1000
             except (IndexError, ValueError, TypeError):
-                track_duration = get_duration(track[1])
-            if not track_duration:
-                logger.error('Failed get track duration %s' % track)
-                return
+                track_duration = None
             crossfade = Crossfade(track=track[1], next_=next_[1], cut_start=cut_start, track_duration=track_duration)
             crossfade.add_crossfade()
 

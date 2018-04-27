@@ -42,7 +42,15 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                     pass
 
     def track_playback_started(self, tl_track, tl_second_track):
-        logger.info('Start: %s %s' % (tl_track.track.name, tl_track.track.uri))
+        try:
+            name = tl_track.track.name.decode('utf-8')
+        except UnicodeEncodeError:
+            name = '-'
+        try:
+            uri = tl_track.track.uri.decode('utf-8')
+        except UnicodeEncodeError:
+            uri = '-'
+        logger.info('Start: %s %s' % (name, uri))
         if self._crossfade:
             client = new_mpd_client()
             for i in range(1, 4):
@@ -55,8 +63,8 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                     second = '/home/files/%s/%s/%s/%s' %(second[0:3], second[3:6], second[6:9], second)
                     try:
                         duration = int(next_['title'].decode('utf-8').split('duration=')[1].split(',')[0])
-                    except IndexError:
-                        duration = get_duration(current)
+                    except (IndexError, ValueError, TypeError):
+                        duration = None
                     if not os.path.exists(cross_file):
                         crossfade = Crossfade(track=current, next_=second, track_duration=duration)
                         crossfade.add_crossfade()

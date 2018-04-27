@@ -87,7 +87,7 @@ def get_played_files():
     for n, line in enumerate(readlines):
         if 'Start:' in line and 'file://' in line:
             played.append(line.replace('\n', '').split('file://')[1])
-    return played
+    return list(set(played))
 
 def get_next_load_tracks(tracks):
     played = get_played_files()

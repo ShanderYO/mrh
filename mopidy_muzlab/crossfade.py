@@ -3,9 +3,10 @@ import subprocess
 import time
 import datetime as dt
 import logging
-from shutil import move
+from shutil import move, copy
 from .utils import concatenate_filename
 from .mpd_client import new_mpd_client
+from .utils import get_duration
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class Crossfade(object):
 		self.next_ = next_.replace('\n', '')
 		self.cut_start = cut_start
 		self.crossfade = crossfade
-		self.track_duration = track_duration
+		self.track_duration = track_duration if track_duration else get_duration(self.track)
 		self.out_directory = out_directory
 		self.out_file = out_file if out_file else concatenate_filename(self.track, self.next_)
 		self.curve = curve
@@ -26,10 +27,17 @@ class Crossfade(object):
 		self.output = '%s%s' % (out_directory, self.out_file)
 
 	def add_crossfade(self):
-		if (os.path.exists(self.output) 
-			or not os.path.exists(self.track)  
-			or not os.path.exists(self.next_)
-			or not self.track_duration):
+		if os.path.exists(self.output):
+			return
+		elif not os.path.exists(self.track):
+			return logger.error('Failed crossfade track %s does not exist' % track)
+		elif not os.path.exists(self.next_):
+			logger.info('Not crossfade beetwen %s and %s, %s does not exist' % (self.track, self.next_, self.next_))
+			copy(self.track, self.output)
+			return
+		elif not self.track_duration:
+			logger.info('Not crossfade beetwen %s and %s, failed duration' % (self.track, self.next_))
+			copy(self.track, self.output)
 			return
 		chunk1, chunk2 = self.split_track()
 		crossfile = self.add_crossfade_between_files()
@@ -43,7 +51,7 @@ class Crossfade(object):
 				os.remove(f)
 			except:
 				pass
-		self.remove_old_file()
+		# self.remove_old_file()
 		return self.output
 
 	def split_track(self):
