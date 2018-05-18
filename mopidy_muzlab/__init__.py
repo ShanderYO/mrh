@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 import os
-
 import logging
-
 from mopidy import config, ext
 
-
-__version__ = '0.2.3'
+__version__ = '0.4.1'
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +24,7 @@ class MuzlabExtension(ext.Extension):
         schema['default_encoding'] = config.String()
         schema['default_extension'] = config.String(choices=['.m3u', '.m3u8'])
         schema['playlists_dir'] = config.Path(optional=True)
+        schema['crossfade'] = config.Boolean(optional=False)
         schema['playlist_url'] = config.String()
         schema['playlist'] = config.String()
         schema['cast_type'] = config.String()

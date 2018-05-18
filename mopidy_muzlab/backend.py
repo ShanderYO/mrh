@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 import logging
 import time
-
 from threading import Lock
-
 from mopidy import backend
 from mopidy.audio import Audio
-
 import pykka
-
 from .playlists import MuzlabPlaylistsProvider
 from .repeating_timer import RepeatingTimer
+from .mpd_client import new_mpd_client, load_playlist
 
 logger = logging.getLogger(__name__)
 
@@ -30,34 +26,63 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         super(MuzlabBackend, self).__init__()
 
         ext_config = config['muzlab']
-        self._playlists_dir = ext_config['playlists_dir']
-        self._refresh_playlists_rate = ext_config['refresh_playlists_rate']
+        self._refresh_playlists_rate = 300
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
-        # do not run playlist refresh around library refresh
-        self._refresh_threshold = self._refresh_playlists_rate * 0.3
-        self.playlists = MuzlabPlaylistsProvider(self, config)
         self.audio = MuzlabAudio(config)
         self.playback = backend.PlaybackProvider(audio, self)
+        self.playlists = MuzlabPlaylistsProvider(self, config)
+        self._observer_rate = 10
+        self._observer_lock = Lock()
+        self._observer_init = False
 
     def on_start(self):
-        logger.info('Start mopidy!!!')
+        logger.info('Start backend!!!')
         if self._refresh_playlists_rate > 0:
             self._refresh_playlists_timer = RepeatingTimer(
                 self._refresh_playlists,
                 self._refresh_playlists_rate)
             self._refresh_playlists_timer.start()
+        if self._observer_rate > 0:
+            self._observer_timer = RepeatingTimer(
+                self._observer,
+                self._observer_rate)
+            self._observer_timer.start()
 
     def on_stop(self):
         if self._refresh_playlists_timer:
             self._refresh_playlists_timer.cancel()
             self._refresh_playlists_timer = None
+        if self._observer_timer:
+            self._observer_timer.cancel()
+            self._observer_timer = None
 
-    def load_playlist(self):
-        pass
+    def _observer(self):
+        with self._observer_lock:
+            pos = self.playback.get_time_position()
+            if pos != 0:
+                self._observer_init = True
+            if self._observer_init:
+                time.sleep(0.2)
+                pos_ = self.playback.get_time_position()
+                if pos != pos_:
+                    return
+                try:
+                    client = new_mpd_client()
+                    client.play()
+                    time.sleep(0.2)
+                    pos__ = self.playback.get_time_position()
+                    if pos_ != pos__:
+                        return
+                    load_playlist(client)
+                    client.play()
+                    time.sleep(0.2)
+                    if pos__ != self.playback.get_time_position():
+                        self._refresh_playlists()
+                except Exception as es:
+                    logger.info(str(es))
 
     def _refresh_playlists(self):
-        # logger.info(self.client.get_status())
         with self._playlist_lock:
             t0 = round(time.time())
             logger.info('Start refreshing playlists')
