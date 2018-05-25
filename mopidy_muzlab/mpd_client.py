@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 def new_mpd_client():
     client = MPDClient()
-    client.timeout = 60
-    client.idletimeout = 120
+    client.timeout = 180
+    client.idletimeout = 240
     c = 0
     while True:
         try:

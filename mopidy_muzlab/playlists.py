@@ -55,7 +55,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.error('Playlist too showrt')
         return True
 
-    def check_playlist_files(self, path):
+    def check_playlist_files(self, path, checked=[]):
         infile = open(path, 'r')
         playlist_type = infile.readline()
         playlist_number = infile.readline()
@@ -69,6 +69,9 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             except IndexError:
                 break
             entry = (line, file_path)
+            if file_path in checked:
+                exists.append(entry)
+                continue
             if not check_line((line, file_path)):
                 continue
             tracks.append(entry)
@@ -225,7 +228,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             logger.info('Download playlists done')
             next_tracks = get_next_load_tracks(tracks)
             self.sync_tracks(next_tracks[:10], is_crossfade=self._crossfade)
-            exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
+            checked = [i[1] for i in exists]
+            exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)
             self.create_playlist_file(exists)
             try:
                 load_playlist(client)
