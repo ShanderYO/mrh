@@ -56,6 +56,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         return True
 
     def check_playlist_files(self, path, checked=[]):
+        logger.info('Start check playlist %s' % path)
         infile = open(path, 'r')
         playlist_type = infile.readline()
         playlist_number = infile.readline()
@@ -96,7 +97,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                     not_exists.append(entry)
                     continue
             
-        # logger.info('exists: %s, not_exists: %s' % (len(exists), len(not_exists)))
+        # logger.info('exists: %s, not_exists: %s, tracks: %s' % (len(exists), len(not_exists), len(tracks)))
+        logger.info('End check playlist %s' % path)
         return (exists, not_exists, tracks)
 
     def sync_tracks(self, tracks, is_crossfade=False):
@@ -201,6 +203,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.error('Error Read timeout occured')
         except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:
             return logger.error('Error Connection timeout occured')
+        except requests.exceptions.ConnectionError:
+            return logger.error('Connection error')
         except Exception as es:
             return logger.error(es)
 
