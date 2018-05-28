@@ -231,6 +231,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             checked = [i[1] for i in exists]
             exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)
             self.create_playlist_file(exists)
+            client = new_mpd_client()
             try:
                 load_playlist(client)
             except Exception as es:

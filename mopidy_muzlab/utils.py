@@ -54,7 +54,7 @@ def check_header(filename):
     out, err =  p.communicate()
     if err:
     	return logger.warning('File: %s not valid audio file; Error: %s' % (filename, err))
-    if 'Audio' in out and 'MPEG' in out:
+    if 'Audio' in out:
 		return True
     logger.warning('File: %s not valid audio file; Error: %s' % (filename, err))
 
