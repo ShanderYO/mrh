@@ -7,6 +7,7 @@ import datetime as dt
 import socket
 import re
 from subprocess import call
+from multiprocessing.dummy import Pool as ThreadPool
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +33,8 @@ def get_duration(track):
 			return
 		return duration
 
-def get_file_name(e):
-	return e[1].replace('\n', '')
+def get_file_name(entry):
+	return entry[1].replace('\n', '')
 
 def get_musicbox_id():
 	return re.sub(r'[\D]+', r'', socket.gethostname())
@@ -57,5 +58,44 @@ def check_header(filename):
     if 'Audio' in out:
 		return True
     logger.warning('File: %s not valid audio file; Error: %s' % (filename, err))
+
+def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade'):
+    return '%s/%s' % (crossfade_directory, concatenate_filename(path, next_path))
+
+def check_crossfade_file(entry, entry_next):
+	cross_file = get_crossfade_file_path(entry[1].decode('utf-8').replace('\n', ''), 
+            entry_next[1].decode('utf-8').replace('\n', ''))
+	if not os.path.exists(cross_file):
+		return
+	return True
+
+def check_entry(entry):
+    if (entry[0].decode('utf-8').startswith('#EXTINF') 
+            and entry[1].decode('utf-8').endswith('mp3')):
+        return True
+
+def get_entries(readlines):
+	entries = tuple((readlines[n+1], get_file_name([None, file_])) for 
+						n, file_ in enumerate(readlines[2:]) if n % 2 != 0)
+	return tuple(entry for entry in entries if check_entry(entry))
+
+def check_files_async(entryes, checked=[]):
+	def check_file(entry):
+		if entry[1] in checked:
+			return entry
+		if not os.path.exists(entry[1]) or os.stat(entry[1]).st_size <= 1024 or not check_header(entry[1]):
+			try:
+				os.remove(entry[1])
+			except OSError:
+				pass
+			return []
+		return entry
+
+	pool = ThreadPool(5)
+	results = pool.map(check_file, entryes)
+	pool.close()
+	pool.join()
+	return tuple(entry for entry in results if entry)
+
 
 

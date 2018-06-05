@@ -66,10 +66,13 @@ class Crossfade(object):
 		return [self.chunk1, self.chunk2]
 
 	def cut(self):
+		if not os.path.exists(self.output):
+			return
 		tmp = '%s.tmp' % self.output
 		move(self.output, tmp)
 		command = 'ffmpeg -y -ss %s -i %s -c copy %s' % (self.crossfade, tmp, self.output)
 		self.run(command)
+		return tmp
 		
 	def add_crossfade_between_files(self):
 		crossfile = '/tmp/%s' % self.chunk2.split('/')[-1].replace('.chunk2.mp3', '.cross.mp3')
@@ -85,6 +88,7 @@ class Crossfade(object):
 		command = 'ffmpeg -y -i concat:%s|%s -c copy %s' % (self.chunk1, 
 													self.crossfile, self.output)
 		self.run(command)
+		return self.output
 
 	def run(self, command):
 		r = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr = subprocess.PIPE)

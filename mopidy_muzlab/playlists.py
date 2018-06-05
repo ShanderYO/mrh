@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 import logging
 import os
+import time
 import requests
 import threading
 import shutil
@@ -10,21 +11,13 @@ from collections import deque
 from .mpd_client import new_mpd_client, load_playlist, get_next_load_tracks
 from mopidy import backend
 import urllib2
-from .utils import (concatenate_filename, get_duration, get_file_name, 
-                                        get_musicbox_id, check_header)
+from .utils import (concatenate_filename, check_crossfade_file, get_crossfade_file_path,
+                        check_files_async, get_musicbox_id, get_entries)
 from mopidy.m3u.playlists import M3UPlaylistsProvider
 from .crossfade import Crossfade
 
 
 logger = logging.getLogger(__name__)
-
-def check_line(line):
-    if (line[0].decode('utf-8').startswith('#EXTINF') 
-            and line[1].decode('utf-8').endswith('mp3\n')):
-        return True
-
-def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade'):
-    return '%s/%s' % (crossfade_directory, concatenate_filename(path, next_path))
 
 class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
@@ -56,50 +49,24 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         return True
 
     def check_playlist_files(self, path, checked=[]):
+        t0 = round(time.time())
         logger.info('Start check playlist %s' % path)
         infile = open(path, 'r')
-        playlist_type = infile.readline()
-        playlist_number = infile.readline()
         readlines = infile.readlines()
-        exists, not_exists, tracks = [], [], []
-        for n, line in enumerate(readlines):
-            if n % 2 != 0:
-                continue
-            try:
-                file_path = readlines[n+1]
-            except IndexError:
-                break
-            entry = (line, file_path)
-            if file_path in checked:
-                exists.append(entry)
-                continue
-            if not check_line((line, file_path)):
-                continue
-            tracks.append(entry)
-            filename = get_file_name(entry)
-            if not os.path.exists(filename) or os.stat(filename).st_size <= 1024 or not check_header(filename):
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
-                not_exists.append(entry)
-                continue
-            else:
-                exists.append(entry)
-            if self._crossfade:
-                try:
-                    next_file_path = readlines[n+3]
-                except IndexError:
-                    break
-                cross_file = get_crossfade_file_path(filename.decode('utf-8'), 
-                            next_file_path.decode('utf-8').replace('\n', ''))
-                if not os.path.exists(cross_file):
-                    not_exists.append(entry)
-                    continue
-            
+        entries = get_entries(readlines)
+        exists = check_files_async(entries, checked)
+        exist_files = tuple(e[1] for e in exists)
+        if self._crossfade:
+            entries_count = len(entries)
+            not_exists = tuple(entry for n, entry in enumerate(entries)
+                if entry[1] not in exist_files or entries_count <= n + 1 or not check_crossfade_file(entry, entries[n+1]))
+        else:
+            not_exists = tuple(entry for entry in entries
+                if entry[1] not in exist_files)
         # logger.info('exists: %s, not_exists: %s, tracks: %s' % (len(exists), len(not_exists), len(tracks)))
-        logger.info('End check playlist %s' % path)
-        return (exists, not_exists, tracks)
+        t = round(time.time()) - t0
+        logger.info('End check playlist %s %s sec' % (path, t))
+        return (exists, not_exists, entries)
 
     def sync_tracks(self, tracks, is_crossfade=False):
         result = self.sync_tracks_concurrency(tracks, is_crossfade=is_crossfade)

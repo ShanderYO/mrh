@@ -55,17 +55,21 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
             client = new_mpd_client()
             for i in range(1, 4):
                 next_ = get_next_track(client, i)
-                if  next_:
-                    cross_file = next_['file'].replace('file://', '')
-                    current = '%s.mp3' % cross_file.split('/')[-1][:12]
-                    current = '/home/files/%s/%s/%s/%s' %(current[0:3], current[3:6], current[6:9], current)
-                    second = cross_file.split('/')[-1][12:]
-                    second = '/home/files/%s/%s/%s/%s' %(second[0:3], second[3:6], second[6:9], second)
-                    try:
-                        duration = int(next_['title'].decode('utf-8').split('duration=')[1].split(',')[0])
-                    except (IndexError, ValueError, TypeError):
-                        duration = None
-                    if not os.path.exists(cross_file):
-                        crossfade = Crossfade(track=current, next_=second, track_duration=duration)
-                        crossfade.add_crossfade()
+                if not next_:
+                    return
+                cross_file = next_['file'].replace('file://', '')
+                if os.path.exists(cross_file):
+                    return
+                current = '%s.mp3' % cross_file.split('/')[-1][:12]
+                current = '/home/files/%s/%s/%s/%s' %(current[0:3], current[3:6], current[6:9], current)
+                second = cross_file.split('/')[-1][12:]
+                second = '/home/files/%s/%s/%s/%s' %(second[0:3], second[3:6], second[6:9], second)
+                if not os.path.exists(current) or not os.path.exists(second):
+                    return
+                try:
+                    duration = int(next_['title'].decode('utf-8').split('duration=')[1].split(',')[0])
+                except (IndexError, ValueError, TypeError):
+                    duration = None
+                crossfade = Crossfade(track=current, next_=second, track_duration=duration)
+                crossfade.add_crossfade()
 
