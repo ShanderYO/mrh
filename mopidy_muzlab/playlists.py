@@ -190,14 +190,21 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         repeat = 1
         is_download = self.download_playlist(playlist=self._playlist.split(':')[0])
         exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
+        logger.info('exists: %s not_exists: %s tracks: %s' % (len(exists), 
+                                                              len(not_exists), 
+                                                              len(tracks)))
         client = new_mpd_client()
         if not client:
             return logger.warning('Can t mpd connect')
+        if not tracks:
+            client.load('main')
         client.repeat(repeat)
         status = client.status()
-        if is_download or status['playlistlength'] == '0':
+        if is_download and tracks or status['playlistlength'] == '0' and tracks:
             logger.info('Download playlists done')
             next_tracks = get_next_load_tracks(tracks)
+            if not next_tracks:
+                next_tracks = tracks
             self.sync_tracks(next_tracks[:10], is_crossfade=self._crossfade)
             checked = [i[1] for i in exists]
             exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)

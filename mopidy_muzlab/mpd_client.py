@@ -19,6 +19,7 @@ def new_mpd_client():
     while True:
         try:
             client.connect(mpd_host, mpd_port)
+            client.currentsong()
             break
         except Exception as es:
             logger.warning(es)

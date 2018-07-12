@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import logging
+import os
 import time
+import subprocess
+import pykka
 from threading import Lock
 from mopidy import backend
 from mopidy.audio import Audio
-import pykka
 from .playlists import MuzlabPlaylistsProvider
 from .repeating_timer import RepeatingTimer
 from .mpd_client import new_mpd_client, load_playlist
@@ -35,6 +37,8 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self._observer_rate = 10
         self._observer_lock = Lock()
         self._observer_init = False
+        self._omxplayer_observer_rate = 0.1
+        self._omxplayer_observer_timer = None
 
     def on_start(self):
         logger.info('Start backend!!!')
@@ -48,6 +52,11 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                 self._observer,
                 self._observer_rate)
             self._observer_timer.start()
+        # if self._omxplayer_observer_rate > 0:
+        #     self._omxplayer_observer_timer = RepeatingTimer(
+        #     self._omxplayer_observer,
+        #     self._omxplayer_observer_rate)
+        #     self._omxplayer_observer_timer.start()
 
     def on_stop(self):
         if self._refresh_playlists_timer:
@@ -56,6 +65,9 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         if self._observer_timer:
             self._observer_timer.cancel()
             self._observer_timer = None
+        # if self._omxplayer_observer_timer:
+        #     self._omxplayer_observer_timer.cancel()
+        #     self._omxplayer_observer_timer = None
 
     def _observer(self):
         with self._observer_lock:
@@ -81,6 +93,35 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                         self._refresh_playlists()
                 except Exception as es:
                     logger.info(str(es))
+
+    def _omxplayer_observer(self):
+        ps = subprocess.Popen(['ps', '-aux'],stdout=subprocess.PIPE)
+        proc = [p for p in ps.stdout.readlines() if '/usr/bin/omxplayer.bin' in p]
+        if not proc and hasattr(self, 'core'):
+            self.core.playback.resume()
+        if len(proc) > 1:
+            try:
+                mp4 = '/home/files/%s' % proc[0].split('/home/files/')[1].split()[0]
+            except (KeyError, IndexError):
+                return
+        else:
+            try:
+                mp4 = '/home/files/%s' % proc[0].split('/home/files/')[1].split('\n')[0]
+            except (KeyError, IndexError):
+                return
+
+        if not os.path.exists(mp4) and hasattr(self, 'core'):
+            self.core.playback.resume()
+        info = subprocess.Popen(['ffprobe', '-i', mp4], stdout=subprocess.PIPE,
+                                                     stdin=subprocess.PIPE, 
+                                                     stderr=subprocess.PIPE).stderr.read()
+        if hasattr(self, 'core'):
+            if 'Audio' in info: 
+                logger.info('AUDIO YES')
+                self.core.playback.pause()
+            else:
+                logger.info('AUDIO NO')
+                self.core.playback.resume()
 
     def _refresh_playlists(self):
         with self._playlist_lock:

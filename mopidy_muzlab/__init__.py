@@ -4,7 +4,7 @@ import os
 import logging
 from mopidy import config, ext
 
-__version__ = '0.4.9'
+__version__ = '0.5.2'
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class MuzlabExtension(ext.Extension):
         schema['playlist'] = config.String()
         schema['cast_type'] = config.String()
         schema['link'] = config.String()
+        schema['video_control'] = config.Boolean(optional=False)
         schema['refresh_playlists_rate'] = config.Integer(minimum=60)
         return schema
 
