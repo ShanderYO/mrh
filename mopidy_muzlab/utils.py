@@ -1,4 +1,5 @@
 import os
+import fnmatch
 import sys
 import shlex
 import logging
@@ -79,11 +80,27 @@ def get_entries(readlines):
 						n, file_ in enumerate(readlines[2:]) if n % 2 != 0)
 	return tuple(entry for entry in entries if check_entry(entry))
 
+def exists_files():
+    files = []
+    for root, dirnames, filenames in os.walk('/home/files/'):
+        for filename in fnmatch.filter(filenames, '*.mp3'):
+            files.append(os.path.join(root, filename))
+    if not files:
+        return []
+    result = [file for file in files if file]
+    return result
+
 def check_files_async(entryes, checked=[]):
+	exists = exists_files()
 	def check_file(entry):
 		if entry[1] in checked:
 			return entry
-		if not os.path.exists(entry[1]) or os.stat(entry[1]).st_size <= 1024 or not check_header(entry[1]):
+		try:
+			size = entry[0].split('size=')[1].split(',')[0]
+		except:
+			size = None
+		if (not entry[1] in exists or 
+			os.stat(entry[1]).st_size != long(size)):
 			try:
 				os.remove(entry[1])
 			except OSError:
@@ -91,7 +108,7 @@ def check_files_async(entryes, checked=[]):
 			return []
 		return entry
 
-	pool = ThreadPool(5)
+	pool = ThreadPool(4)
 	results = pool.map(check_file, entryes)
 	pool.close()
 	pool.join()
