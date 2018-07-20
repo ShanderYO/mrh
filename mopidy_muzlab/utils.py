@@ -91,7 +91,6 @@ def exists_files():
     return result
 
 def check_files_async(entryes, checked=[]):
-	exists = exists_files()
 	def check_file(entry):
 		if entry[1] in checked:
 			return entry
@@ -99,7 +98,7 @@ def check_files_async(entryes, checked=[]):
 			size = entry[0].split('size=')[1].split(',')[0]
 		except:
 			size = None
-		if (not entry[1] in exists or 
+		if (not os.path.exists(entry[1]) or
 			os.stat(entry[1]).st_size != long(size)):
 			try:
 				os.remove(entry[1])
@@ -108,10 +107,11 @@ def check_files_async(entryes, checked=[]):
 			return []
 		return entry
 
-	pool = ThreadPool(4)
-	results = pool.map(check_file, entryes)
-	pool.close()
-	pool.join()
+	results = map(check_file, entryes)
+	# pool = ThreadPool(4)
+	# results = pool.map(check_file, entryes)
+	# pool.close()
+	# pool.join()
 	return tuple(entry for entry in results if entry)
 
 
