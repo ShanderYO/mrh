@@ -39,7 +39,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self.playlists = MuzlabPlaylistsProvider(self, config)
         self._observer_rate = 10
         self._observer_init = False
-        self._omxplayer_observer_rate = 1
+        self._omxplayer_observer_rate = 0.1
         self._omxplayer_observer_timer = None
         self._pause = False
 
