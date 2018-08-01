@@ -114,5 +114,9 @@ def check_files_async(entryes, checked=[]):
 	# pool.join()
 	return tuple(entry for entry in results if entry)
 
+def add_row_to_file(row, path):
+	with open(path, 'ab+') as f:
+		f.write('%s\n' % row)
+
 
 

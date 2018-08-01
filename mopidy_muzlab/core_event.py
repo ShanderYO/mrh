@@ -9,7 +9,7 @@ import pykka
 from .mpd_client import new_mpd_client, load_playlist, get_prev_track, get_next_track
 from .crossfade import Crossfade
 from .repeating_timer import RepeatingTimer
-from .utils import get_duration
+from .utils import get_duration, add_row_to_file
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         self._playlists_dir = ext_config['playlists_dir']
         self._playlist = ext_config['playlist']
         self._crossfade = ext_config['crossfade']
+        self._start_tracks_log = ext_config['start_tracks_log']
         self.core = core
 
     def gstreamer_error(self, error_msg, debug_msg):
@@ -50,7 +51,9 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
             uri = tl_track.track.uri.decode('utf-8')
         except UnicodeEncodeError:
             uri = '-'
-        logger.info('Start: %s %s' % (name, uri))
+        start = 'Start: %s %s' % (name, uri)
+        logger.info(start)
+        add_row_to_file(start, self._start_tracks_log)
         if self._crossfade:
             client = new_mpd_client()
             for i in range(1, 4):

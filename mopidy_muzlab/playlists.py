@@ -78,9 +78,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
 
     def create_playlist_file(self, tracks, filename='main.m3u'):
         path = os.path.join(self._playlists_dir, filename)
-        playlist_type = '#EXTM3U'
         with open(path, 'wb') as f:
-            f.write(playlist_type)
             for n, e in enumerate(tracks):
                 try:
                     next_ = tracks[n+1]
@@ -186,7 +184,6 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.error('Download failed')
 
     def refresh(self):
-        current = 'main'
         repeat = 1
         is_download = self.download_playlist(playlist=self._playlist.split(':')[0])
         exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
