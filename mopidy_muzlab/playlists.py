@@ -53,7 +53,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         logger.info('Start check playlist %s' % path)
         infile = open(path, 'r')
         readlines = infile.readlines()
-        entries = get_entries(readlines)
+        entries = get_next_load_tracks(get_entries(readlines))
         exists = check_files_async(entries, checked)
         exist_files = tuple(e[1] for e in exists)
         if self._crossfade:
@@ -197,14 +197,13 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             client.load('main')
         client.repeat(repeat)
         status = client.status()
-        if is_download and tracks or status['playlistlength'] == '0' and tracks:
+        if is_download:
             logger.info('Download playlists done')
-            next_tracks = get_next_load_tracks(tracks)
-            if not next_tracks:
-                next_tracks = tracks
-            self.sync_tracks(next_tracks[:10], is_crossfade=self._crossfade)
-            checked = [i[1] for i in exists]
-            exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)
+        if tracks:
+            if len(exists) < 10:
+                self.sync_tracks(tracks[:10], is_crossfade=self._crossfade)
+                checked = [i[1] for i in exists]
+                exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)
             self.create_playlist_file(exists)
             client = new_mpd_client()
             try:

@@ -4,7 +4,7 @@ import os
 import logging
 from mopidy import config, ext
 
-__version__ = '0.5.9'
+__version__ = '0.6.2'
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +39,4 @@ class MuzlabExtension(ext.Extension):
         from .core_event import MuzlabCoreEvent
         registry.add('backend', MuzlabBackend)
         registry.add('frontend', MuzlabCoreEvent)
+        logger.info('Starting Mopidy-Muzlab %s' % self.version)

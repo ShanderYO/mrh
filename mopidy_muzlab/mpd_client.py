@@ -80,19 +80,43 @@ def clear_not_exists(client):
             client.delete(int(track['pos']))
             # logger.info('Track %s remove from playlist' % track['file'])
 
-def get_played_files():
-    log_file = '/var/log/mopidy/mopidy.log'
-    infile = open(log_file, 'r')
-    readlines = infile.readlines()
-    played = []
-    for n, line in enumerate(readlines):
-        if 'Start:' in line and 'file://' in line:
-            played.append(line.replace('\n', '').split('file://')[1])
-    return list(set(played))
+def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
+    if not os.path.isfile(log_file):
+        open(log_file, 'a')
+    with open(log_file, 'r') as f:
+        readlines = f.readlines()
+        played = []
+        for n, line in enumerate(readlines):
+            if 'Start:' in line and 'file://' in line:
+                played.append(line.replace('\n', '').split('file://')[1])
+        return list(set(played))
+
+def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
+    with open(log_file, 'r') as f:
+        readlines = f.readlines()
+        if not readlines:
+            return
+        line = readlines[-1]
+        if 'Start:' in line and 'rotation_id=' in line:
+            try:
+                return int(line.replace('\n', '').split('rotation_id=')[1].split(',')[0])
+            except (IndexError, ValueError):
+                pass
 
 def get_next_load_tracks(tracks):
-    played = get_played_files()
-    return tuple(track for track in tracks if track[1] not in played[:100])
+    next_load_tracks = None
+    last_id = get_last_start_id()
+    if last_id:
+        last_track = tuple(n for n, track in enumerate(tracks) if 'rotation_id=%s' % str(last_id) in track[0])
+        if last_track:
+            last_track_key = last_track[0]
+            next_load_tracks = tracks[last_track_key+1:] + tracks[:last_track_key+1]
+    else:
+        played = get_played_files()
+        next_load_tracks = tuple(track for track in tracks if track[1] not in played[:100] or 'type=1' not in track[0])
+    if not next_load_tracks:
+        next_load_tracks = tracks
+    return next_load_tracks
 
 def get_prev_track(client, degree=1):
     playlistinfo = client.playlistinfo()

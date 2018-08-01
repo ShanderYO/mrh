@@ -94,12 +94,9 @@ def check_files_async(entryes, checked=[]):
 	def check_file(entry):
 		if entry[1] in checked:
 			return entry
-		try:
-			size = entry[0].split('size=')[1].split(',')[0]
-		except:
-			size = None
-		if (not os.path.exists(entry[1]) or not size or
-			os.stat(entry[1]).st_size != long(size)):
+		if not os.path.exists(entry[1]):
+			return []
+		if os.stat(entry[1]).st_size <= 1024*8 or not check_header(entry[1]):
 			try:
 				os.remove(entry[1])
 			except OSError:
@@ -107,12 +104,19 @@ def check_files_async(entryes, checked=[]):
 			return []
 		return entry
 
-	results = map(check_file, entryes)
-	# pool = ThreadPool(4)
-	# results = pool.map(check_file, entryes)
-	# pool.close()
-	# pool.join()
-	return tuple(entry for entry in results if entry)
+	pool = ThreadPool(4)
+	result = []
+	for r in pool.imap(check_file, entryes, chunksize=1):
+		if r:
+			result.append(r)
+			print(len(result))
+		if len(result) >= 200:
+			pool.terminate()
+			break
+
+	pool.close()
+	pool.join()
+	return tuple(entry for entry in result if entry)
 
 def add_row_to_file(row, path):
 	with open(path, 'ab+') as f:
