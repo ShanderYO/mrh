@@ -109,7 +109,6 @@ def check_files_async(entryes, checked=[]):
 	for r in pool.imap(check_file, entryes, chunksize=1):
 		if r:
 			result.append(r)
-			print(len(result))
 		if len(result) > 200:
 			pool.terminate()
 			break
