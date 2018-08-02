@@ -92,6 +92,8 @@ def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
         return list(set(played))
 
 def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
+    if not os.path.isfile(log_file):
+        open(log_file, 'a')
     with open(log_file, 'r') as f:
         readlines = f.readlines()
         if not readlines:
