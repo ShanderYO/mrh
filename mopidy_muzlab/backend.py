@@ -11,6 +11,7 @@ from mopidy.audio import Audio
 from .playlists import MuzlabPlaylistsProvider
 from .repeating_timer import RepeatingTimer
 from .mpd_client import new_mpd_client, load_playlist
+from .utils import cut_file_rows_in_bot
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +43,11 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         self._omxplayer_observer_rate = 0.1
         self._omxplayer_observer_timer = None
         self._pause = False
+        self._start_tracks_log = ext_config['start_tracks_log']
 
     def on_start(self):
         logger.info('Start backend!!!')
+        cut_file_rows_in_bot(self._start_tracks_log)
         if self._video_control:
             self._omxplayer_observer_timer = RepeatingTimer(
                 self._omxplayer_observer,

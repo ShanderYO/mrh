@@ -122,5 +122,12 @@ def add_row_to_file(row, path):
 	with open(path, 'ab+') as f:
 		f.write('%s\n' % row)
 
+def cut_file_rows_in_bot(path, numb=10000):
+	infile = open(path, 'r')
+	readlines = infile.readlines()
+	with open(path, 'wb') as f:
+		for row in readlines[-numb:]:
+			f.write(row)
+
 
 
