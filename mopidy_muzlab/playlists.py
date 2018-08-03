@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 import logging
-import os
+from os import makedirs
+from os.path import isfile, isdir, join, dirname, basename
 import time
 import requests
 import threading
@@ -54,8 +55,9 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         infile = open(path, 'r')
         readlines = infile.readlines()
         entries = get_next_load_tracks(get_entries(readlines))
-        exists = check_files_async(entries, checked)
-        exist_files = tuple(e[1] for e in exists)
+        accepted = check_files_async(entries, checked)
+        exist_files = set(tuple(e[1] for e in entries if isfile(e[1])))
+        not_exists_files = set(tuple(e[1] for e in entries if not isfile(e[1])))
         if self._crossfade:
             entries_count = len(entries)
             not_exists = tuple(entry for n, entry in enumerate(entries)
@@ -63,25 +65,30 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         else:
             not_exists = tuple(entry for entry in entries
                 if entry[1] not in exist_files)
-        # logger.info('exists: %s, not_exists: %s, tracks: %s' % (len(exists), len(not_exists), len(tracks)))
         t = round(time.time()) - t0
+        logger.info('Accepted entries: %s' % len(accepted))
+        logger.info('All playlist\'s entries: %s' % len(entries))
+        logger.info('Not existing entries: %s' % len(not_exists))
+        logger.info('Exist files: %s' % len(exist_files))
+        logger.info('All files: %s' % str(len(exist_files) + len(not_exists_files)))
+        logger.info('Not existing files: %s' % len(not_exists_files))
         logger.info('End check playlist %s %s sec' % (path, t))
-        return (exists, not_exists, entries)
+        return (accepted, not_exists, entries)
 
-    def sync_tracks(self, tracks, is_crossfade=False):
-        result = self.sync_tracks_concurrency(tracks, is_crossfade=is_crossfade)
+    def sync_tracks(self, entries, is_crossfade=False):
+        result = self.sync_tracks_concurrency(entries, is_crossfade=is_crossfade)
         while not result.done():
             try:
                 result.result(.5)
             except TimeoutError:
                 pass
 
-    def create_playlist_file(self, tracks, filename='main.m3u'):
-        path = os.path.join(self._playlists_dir, filename)
+    def create_playlist_file(self, entries, filename='main.m3u'):
+        path = join(self._playlists_dir, filename)
         with open(path, 'wb') as f:
-            for n, e in enumerate(tracks):
+            for n, e in enumerate(entries):
                 try:
-                    next_ = tracks[n+1]
+                    next_ = entries[n+1]
                 except IndexError:
                     break
                 if self._crossfade:
@@ -91,16 +98,16 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 f.write(e[0])
                 f.write('%s\n' % path)
 
-    def sync_tracks_concurrency(self, lines, concurrency=4, is_crossfade=False):
-        def download_tracks(obj):
-            url = obj[1][1].replace('\n', '')
-            n = obj[0]
+    def sync_tracks_concurrency(self, entries, concurrency=4, is_crossfade=False):
+        def download_tracks(entrie):
+            url = entrie[1][1].replace('\n', '')
+            n = entrie[0]
             load = True
-            if not os.path.exists(url):
+            if not isfile(url):
                 load = False
-                if not os.path.exists(os.path.dirname(url)):
-                    os.makedirs(os.path.dirname(url))
-                base_name = os.path.basename(url)
+                if not isdir(dirname(url)):
+                    makedirs(dirname(url))
+                base_name = basename(url)
                 mp3file = urllib2.urlopen('http://f.muz-lab.ru/'+ base_name)
                 try:
                     with open('/tmp/' + base_name, 'wb') as output:
@@ -111,26 +118,26 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 except Exception as es:
                     logger.info(str(es))
             if is_crossfade and load and n > 0:
-                prev = lines[n-1]
-                add_crossfade(prev, obj[1], n-1)
+                prev = entries[n-1]
+                add_crossfade(prev, entrie[1], n-1)
 
-        def add_crossfade(track, next_, n):
+        def add_crossfade(entrie, next_, n):
             cut_start = False if n == 0 else True
             try:
-                track_duration = int(track[0].decode('utf-8').split('duration=')[1].split(',')[0])/1000
+                track_duration = int(entrie[0].decode('utf-8').split('duration=')[1].split(',')[0])/1000
             except (IndexError, ValueError, TypeError):
                 track_duration = None
-            crossfade = Crossfade(track=track[1], next_=next_[1], cut_start=cut_start, track_duration=track_duration)
+            crossfade = Crossfade(track=entrie[1], next_=next_[1], cut_start=cut_start, track_duration=track_duration)
             crossfade.add_crossfade()
 
         def submit():
             try:
-                obj = iterator.next()
+                entrie = iterator.next()
             except StopIteration:
                 return
             stats['delayed'] += 1
-            future = executor.submit(download_tracks, obj)
-            future.obj = obj
+            future = executor.submit(download_tracks, entrie)
+            future.obj = entrie
             future.add_done_callback(download_done)
 
         def download_done(future):
@@ -147,7 +154,13 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             with io_lock:
                 executor.shutdown(wait=False)
 
-        iterator = enumerate(lines)
+        iters = []
+        not_exists_files = []
+        for e in entries:
+            if e and e[1] not in not_exists_files:
+                iters.append(e)
+                not_exists_files.append(e[1])
+        iterator = enumerate(iters)
         io_lock = threading.RLock()
         executor = ThreadPoolExecutor(concurrency)
         result = Future()
@@ -186,25 +199,22 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
     def refresh(self):
         repeat = 1
         is_download = self.download_playlist(playlist=self._playlist.split(':')[0])
-        exists, not_exists, tracks = self.check_playlist_files(self.last_playlist)
-        logger.info('exists: %s not_exists: %s tracks: %s' % (len(exists), 
-                                                              len(not_exists), 
-                                                              len(tracks)))
+        accepted, not_exists, entries = self.check_playlist_files(self.last_playlist)
         client = new_mpd_client()
         if not client:
             return logger.warning('Can t mpd connect')
-        if not tracks:
+        if not entries:
             client.load('main')
         client.repeat(repeat)
         status = client.status()
         if is_download:
             logger.info('Download playlists done')
-        if tracks:
-            if len(exists) < 10:
-                self.sync_tracks(tracks[:10], is_crossfade=self._crossfade)
-                checked = [i[1] for i in exists]
-                exists, not_exists, tracks = self.check_playlist_files(self.last_playlist, checked=checked)
-            self.create_playlist_file(exists)
+        if entries:
+            if len(accepted) < 10:
+                self.sync_tracks(entries[:10], is_crossfade=self._crossfade)
+                checked = [i[1] for i in accepted]
+                accepted, not_exists, entries = self.check_playlist_files(self.last_playlist, checked=checked)
+            self.create_playlist_file(accepted)
             client = new_mpd_client()
             try:
                 load_playlist(client)
@@ -215,5 +225,5 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 client.play()
         except Exception as es:
             logger.error(es)
-        self.sync_tracks(tracks)
+        self.sync_tracks(not_exists)
 

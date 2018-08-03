@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import socket
-import os
+from os.path import isfile
 from mpd import MPDClient, CommandError
 from .repeating_timer import RepeatingTimer
 import time
@@ -69,19 +69,19 @@ def clear_replays(client):
         if entry['file'].split('/')[-1][12:] in played[-100:]:
             client.deleteid(int(entry['id']))
 
-def clear_not_exists(client):
+def clear_not_accepted(client):
     '''
         Remove track with no files
     '''
     tracks = client.playlistinfo()
     tracks.sort(key=lambda i:int(i['pos']), reverse=True)
     for track in tracks:
-        if not os.path.exists(track['file']):
+        if not isfile(track['file']):
             client.delete(int(track['pos']))
             # logger.info('Track %s remove from playlist' % track['file'])
 
 def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
-    if not os.path.isfile(log_file):
+    if not isfile(log_file):
         open(log_file, 'a')
     with open(log_file, 'r') as f:
         readlines = f.readlines()
@@ -92,7 +92,7 @@ def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
         return list(set(played))
 
 def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
-    if not os.path.isfile(log_file):
+    if not isfile(log_file):
         open(log_file, 'a')
     with open(log_file, 'r') as f:
         readlines = f.readlines()
@@ -114,8 +114,7 @@ def get_next_load_tracks(tracks):
             last_track_key = last_track[0]
             next_load_tracks = tracks[last_track_key+1:] + tracks[:last_track_key+1]
     else:
-        played = get_played_files()
-        next_load_tracks = tuple(track for track in tracks if track[1] not in played[:100] or 'type=1' not in track[0])
+        next_load_tracks = tuple(track for track in tracks if track[1])
     if not next_load_tracks:
         next_load_tracks = tracks
     return next_load_tracks

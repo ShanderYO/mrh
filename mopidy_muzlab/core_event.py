@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 import logging
-import os
+from os import remove
+from os.path import isfile
 from datetime import datetime as dt
 from mopidy import core
 import pykka
@@ -38,7 +38,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                 path = prev['file'].replace('file://', '')
                 logger.info('Remove: %s' % path)
                 try:
-                    os.remove(path)
+                    remove(path)
                 except OSError:
                     pass
 
@@ -61,13 +61,13 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
                 if not next_:
                     return
                 cross_file = next_['file'].replace('file://', '')
-                if os.path.exists(cross_file):
+                if isfile(cross_file):
                     return
                 current = '%s.mp3' % cross_file.split('/')[-1][:12]
                 current = '/home/files/%s/%s/%s/%s' %(current[0:3], current[3:6], current[6:9], current)
                 second = cross_file.split('/')[-1][12:]
                 second = '/home/files/%s/%s/%s/%s' %(second[0:3], second[3:6], second[6:9], second)
-                if not os.path.exists(current) or not os.path.exists(second):
+                if not isfile(current) or not isfile(second):
                     return
                 try:
                     duration = int(next_['title'].decode('utf-8').split('duration=')[1].split(',')[0])

@@ -23,7 +23,7 @@ def check_omxplay():
         except (KeyError, IndexError):
             pass
     mp4 = mp4.split()[0] if mp4 else ''
-    if not os.path.exists(mp4):
+    if not os.path.isfile(mp4):
         return False
     info = subprocess.Popen(['ffprobe', '-i', mp4], stdout=subprocess.PIPE,
                                                  stdin=subprocess.PIPE, 

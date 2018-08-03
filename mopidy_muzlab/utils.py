@@ -1,4 +1,5 @@
-import os
+from os import stat, walk, remove
+from os.path import isfile, join
 import fnmatch
 import sys
 import shlex
@@ -66,7 +67,7 @@ def get_crossfade_file_path(path, next_path, crossfade_directory='/tmp/crossfade
 def check_crossfade_file(entry, entry_next):
 	cross_file = get_crossfade_file_path(entry[1].decode('utf-8').replace('\n', ''), 
             entry_next[1].decode('utf-8').replace('\n', ''))
-	if not os.path.exists(cross_file):
+	if not isfile(cross_file):
 		return
 	return True
 
@@ -82,9 +83,9 @@ def get_entries(readlines):
 
 def exists_files():
     files = []
-    for root, dirnames, filenames in os.walk('/home/files/'):
+    for root, dirnames, filenames in walk('/home/files/'):
         for filename in fnmatch.filter(filenames, '*.mp3'):
-            files.append(os.path.join(root, filename))
+            files.append(join(root, filename))
     if not files:
         return []
     result = [file for file in files if file]
@@ -94,11 +95,11 @@ def check_files_async(entryes, checked=[]):
 	def check_file(entry):
 		if entry[1] in checked:
 			return entry
-		if not os.path.exists(entry[1]):
+		if not isfile(entry[1]):
 			return []
-		if os.stat(entry[1]).st_size <= 1024*8 or not check_header(entry[1]):
+		if stat(entry[1]).st_size <= 1024*8 or not check_header(entry[1]):
 			try:
-				os.remove(entry[1])
+				remove(entry[1])
 			except OSError:
 				pass
 			return []
@@ -109,7 +110,7 @@ def check_files_async(entryes, checked=[]):
 	for r in pool.imap(check_file, entryes, chunksize=1):
 		if r:
 			result.append(r)
-		if len(result) > 200:
+		if len(result) >= 200:
 			pool.terminate()
 			break
 

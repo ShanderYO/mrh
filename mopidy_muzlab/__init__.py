@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import os
+from os.path import join, dirname
 import logging
 from mopidy import config, ext
 
-__version__ = '0.6.3'
+__version__ = '0.6.5'
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class MuzlabExtension(ext.Extension):
     version = __version__
 
     def get_default_config(self):
-        conf_file = os.path.join(os.path.dirname(__file__), 'ext.conf')
+        conf_file = join(dirname(__file__), 'ext.conf')
         return config.read(conf_file)
 
     def get_config_schema(self):

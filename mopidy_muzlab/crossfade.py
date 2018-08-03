@@ -1,4 +1,5 @@
-import os
+from os import makedirs, remove, listdir
+from os.path import isdir, isfile, dirname
 import subprocess
 import time
 import datetime as dt
@@ -22,16 +23,16 @@ class Crossfade(object):
 		self.out_directory = out_directory
 		self.out_file = out_file if out_file else concatenate_filename(self.track, self.next_)
 		self.curve = curve
-		if not os.path.exists(os.path.dirname(out_directory)):
-			os.makedirs(os.path.dirname(out_directory))
+		if not isdir(dirname(out_directory)):
+			makedirs(dirname(out_directory))
 		self.output = '%s%s' % (out_directory, self.out_file)
 
 	def add_crossfade(self):
-		if os.path.exists(self.output):
+		if isfile(self.output):
 			return
-		elif not os.path.exists(self.track):
+		elif not isfile(self.track):
 			return logger.error('Failed crossfade track %s does not exist' % track)
-		elif not os.path.exists(self.next_):
+		elif not isfile(self.next_):
 			logger.info('Not crossfade beetwen %s and %s, %s does not exist' % (self.track, self.next_, self.next_))
 			copy(self.track, self.output)
 			return
@@ -48,7 +49,7 @@ class Crossfade(object):
 		logger.info('Crossfade:%s' % self.output)
 		for f in [chunk1, chunk2, crossfile, '%s.tmp' % self.output]:
 			try:
-				os.remove(f)
+				remove(f)
 			except:
 				pass
 		# self.remove_old_file()
@@ -66,7 +67,7 @@ class Crossfade(object):
 		return [self.chunk1, self.chunk2]
 
 	def cut(self):
-		if not os.path.exists(self.output):
+		if not isfile(self.output):
 			return
 		tmp = '%s.tmp' % self.output
 		move(self.output, tmp)
@@ -95,7 +96,7 @@ class Crossfade(object):
 		out, err = r.communicate()
 
 	def remove_old_file(self):
-		files = os.listdir(self.out_directory)
+		files = listdir(self.out_directory)
 		file_count = len(files)
 		if file_count >= 100:
 			client = new_mpd_client()
@@ -105,7 +106,7 @@ class Crossfade(object):
 			for n in not_in_playlist:
 				path = '%s%s' % (self.out_directory, n)
 				try:
-					os.remove(path)
+					remove(path)
 				except:
 					pass
 

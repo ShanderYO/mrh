@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 import logging
-import os
+from os.path import isfile
 import time
 import subprocess
 import pykka
@@ -135,7 +135,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                 except (KeyError, IndexError):
                     pass
             mp4 = mp4.split()[0] if mp4 else ''
-            if not os.path.exists(mp4) and self._pause == True:
+            if not isfile(mp4) and self._pause == True:
                 self.resume()
             info = subprocess.Popen(['ffprobe', '-i', mp4], stdout=subprocess.PIPE,
                                                          stdin=subprocess.PIPE, 
