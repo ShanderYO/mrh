@@ -12,4 +12,3 @@ run-build:
   artifacts:
     paths:
     - deb_dist/python-mopidy-muzlab_*_all.deb
-
