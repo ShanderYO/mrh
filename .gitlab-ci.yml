@@ -9,5 +9,5 @@ run-build:
     - python setup.py --command-packages=stdeb.command  bdist_deb
   artifacts:
     paths:
-    - deb_dist/*
+    - deb_dist/python-mopidy-muzlab_*_all.deb
 
