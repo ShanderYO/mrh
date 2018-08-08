@@ -7,6 +7,8 @@ run-build:
   script:
     - apt -y update && apt -y upgrade
     - python setup.py --command-packages=stdeb.command  bdist_deb
+  after_script:
+    - scp -P22022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null deb_dist/python-mopidy-muzlab_*_all.deb 10.77.3.66:/home/repo/gitlab_packages/
   artifacts:
     paths:
     - deb_dist/python-mopidy-muzlab_*_all.deb
