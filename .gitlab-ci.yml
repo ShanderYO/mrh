@@ -1,11 +1,17 @@
 before_script:
   - source /etc/profile
+  - apt -y update && apt -y upgrade
+  - apt -y install python-pytest
 stages:
+  - test
   - build
+test:
+  stage: test
+  script:
+  - cd mopidy_muzlab; pytest -v
 run-build:
   stage: build
   script:
-    - apt -y update && apt -y upgrade
     - python setup.py --command-packages=stdeb.command  bdist_deb
   after_script:
     - scp -P22022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null deb_dist/python-mopidy-muzlab_*_all.deb repo@10.77.3.66:/home/repo/gitlab_packages/
