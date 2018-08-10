@@ -1,7 +1,7 @@
 before_script:
   - source /etc/profile
   - apt -y update && apt -y upgrade
-  - apt -y install python-pytest mopidy
+  - apt -y install python-pytest python-mock mopidy
 stages:
   - build
   - test
