@@ -23,15 +23,15 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*']),
     zip_safe=False,
     include_package_data=True,
-    install_requires=[
-        'setuptools',
-        'Mopidy >= 2.1',
-        'Pykka >= 1.1',
-        'requests >= 2.0',
-        'cachetools >= 1.0',
-        'python-mpd2 > 0.5.1',
-        'futures >= 3.1.1'
-    ],
+#    install_requires=[
+#        'setuptools',
+#        'Mopidy >= 2.1',
+#        'Pykka >= 1.1',
+#        'requests >= 2.0',
+#        'cachetools >= 1.0',
+#        'python-mpd2 > 0.5.1',
+#        'futures >= 3.1.1'
+#    ],
     entry_points={
         'mopidy.ext': [
             'muzlab = mopidy_muzlab:MuzlabExtension',
