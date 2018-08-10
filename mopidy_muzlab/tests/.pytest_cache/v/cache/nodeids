@@ -1,0 +1,8 @@
+[
+  "test_playlists.py::test_playlist_exists", 
+  "test_playlists.py::test_playlist_format", 
+  "test_playlists.py::test_playlist_promo", 
+  "test_playlists.py::test_playlist_play", 
+  "test_playlists.py::test_playlist_length", 
+  "test_playlists.py::test_playlist_rer"
+]
