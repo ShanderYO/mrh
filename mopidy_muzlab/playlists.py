@@ -46,7 +46,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         if not playlist_number.startswith('#PLAYLIST'):
             return logger.error('Playlist have incorrect format')
         if len(readlines) < 60:
-            return logger.error('Playlist too showrt')
+            return logger.error('Playlist is downloaded is too short and not accepted !!!')
         return True
 
     def check_playlist_files(self, path, checked=[]):
@@ -76,6 +76,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         return (accepted, not_exists, entries)
 
     def sync_tracks(self, entries, is_crossfade=False):
+        if not entries:
+            return
         result = self.sync_tracks_concurrency(entries, is_crossfade=is_crossfade)
         while not result.done():
             try:

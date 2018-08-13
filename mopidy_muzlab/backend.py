@@ -30,7 +30,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
 
         ext_config = config['muzlab']
         self._video_control = ext_config['video_control']
-        self._refresh_playlists_rate = 300
+        self._refresh_playlists_rate = 30
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         self._observer_lock = Lock()

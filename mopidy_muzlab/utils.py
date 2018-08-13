@@ -127,9 +127,11 @@ def cut_file_rows_in_bot(path, numb=10000):
 		open(path, 'a')
 	infile = open(path, 'r')
 	readlines = infile.readlines()
+	readlines = readlines[-numb:]
 	with open(path, 'wb') as f:
-		for row in readlines[-numb:]:
+		for row in readlines:
 			f.write(row)
+	logger.info('Cut %s lines' % len(readlines))
 
 
 
