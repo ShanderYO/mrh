@@ -133,5 +133,20 @@ def cut_file_rows_in_bot(path, numb=10000):
 			f.write(row)
 	logger.info('Cut %s lines' % len(readlines))
 
+def musicbox_request_header():
+    import re,socket,hashlib
+
+    MUSIC_BOX_API_SALT = "Ma'\}D@)EwQ\+b}&~Y=c@;^P;dH'`'X')HfSf{4RjE(wd#neVQ7Nv^QcHe[/!.u"
+
+    with open('/proc/cpuinfo') as f:
+        try:
+            serial = [re.findall(r'\t:\s(.+?)\n', k)[0] for k in f.readlines() if 'Serial' in k][0]
+        except IndexError:
+            serial = ''
+
+    md5 = hashlib.md5()
+    md5.update((''.join([socket.gethostname(), serial, MUSIC_BOX_API_SALT])).encode())
+    return {'musicbox-token': md5.hexdigest(), 'serial': serial}
+
 
 

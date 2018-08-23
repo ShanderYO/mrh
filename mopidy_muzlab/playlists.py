@@ -12,8 +12,8 @@ from collections import deque
 from .mpd_client import new_mpd_client, load_playlist, get_next_load_tracks
 from mopidy import backend
 import urllib2
-from .utils import (concatenate_filename, check_crossfade_file, get_crossfade_file_path,
-                        check_files_async, get_musicbox_id, get_entries)
+from .utils import (concatenate_filename, check_crossfade_file, get_crossfade_file_path, 
+                    musicbox_request_header, check_files_async, get_musicbox_id, get_entries)
 from mopidy.m3u.playlists import M3UPlaylistsProvider
 from .crossfade import Crossfade
 
@@ -178,7 +178,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         logger.info('Download playlist !!!')
         logger.info(self._playlist_uri)
         try:
-            r = requests.get(self._playlist_uri, stream=True, timeout=(5, 60))
+            r = requests.get(self._playlist_uri, headers=musicbox_request_header(), stream=True, timeout=(5, 60))
         except requests.exceptions.ReadTimeout:
             return logger.error('Error Read timeout occured')
         except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:
