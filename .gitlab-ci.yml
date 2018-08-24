@@ -7,6 +7,8 @@ stages:
   - test
 run-build:
   stage: build
+  only:
+    - master
   script:
     - python setup.py --command-packages=stdeb.command  bdist_deb
   artifacts:
@@ -14,6 +16,8 @@ run-build:
     - deb_dist/python-mopidy-muzlab_*_all.deb
 test:
   stage: test
+  only:
+   - master
   script:
    - dpkg -i deb_dist/python-mopidy-muzlab_*_all.deb
    - cd mopidy_muzlab/tests; pytest -v
