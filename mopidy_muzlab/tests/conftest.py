@@ -28,7 +28,7 @@ def config_mock(tmpdir):
             'default_encoding': 'latin-1',
             'playlist_url': 'http://muz-lab.ru/api/v1/stream/playlist_box',
             'refresh_playlists_rate': 900,
-            'playlists_dir': '/home/mopidy/mopidy/playlists',
+            'playlists_dir': 'playlists',
             'crossfade': False,
             'video_control': False,
             'base_dir': None,
@@ -39,8 +39,8 @@ def config_mock(tmpdir):
 			'enabled': True,
 			'default_encoding': 'latin-1',
 			'default_extension': '.m3u',
-			'base_dir': '/home/mopidy/mopidy/playlists',
-			'playlists_dir': '/home/mopidy/mopidy/playlists',
+			'base_dir': 'playlists',
+			'playlists_dir': 'playlists',
 		},
     }
 
@@ -51,7 +51,7 @@ def entries_mock(playlist_mock):
 
 @pytest.fixture
 def playlist_mock():
-    infile = open('/home/mopidy/mopidy/playlists/last_playlist.m3u', 'r')
+    infile = open('playlists/last_playlist.m3u', 'r')
     playlist_mock = infile.readlines()
     playlist_mock = [line for line in playlist_mock if line and line != '\n']
     return playlist_mock

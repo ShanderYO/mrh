@@ -1,8 +1,17 @@
 [
+  "test_extension.py::test_init_backend", 
+  "test_extension.py::test_backend_start", 
+  "test_extension.py::test_backend_stop", 
+  "test_extension.py::test_init_frontend", 
+  "test_extension.py::test_frontend_start", 
+  "test_extension.py::test_frontend_stop", 
   "test_playlists.py::test_playlist_exists", 
   "test_playlists.py::test_playlist_format", 
-  "test_playlists.py::test_playlist_promo", 
-  "test_playlists.py::test_playlist_play", 
   "test_playlists.py::test_playlist_length", 
-  "test_playlists.py::test_playlist_rer"
+  "test_playlists.py::test_is_a_playlists_provider", 
+  "test_playlists.py::test_get_items", 
+  "test_playlists.py::test_create", 
+  "test_playlists.py::test_lookup_valid", 
+  "test_playlists.py::test_lookup_invalid", 
+  "test_utils.py::test_check_files_async"
 ]

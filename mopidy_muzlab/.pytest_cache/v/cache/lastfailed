@@ -1,0 +1,9 @@
+{
+  "tests/test_playlists.py::test_as_list": true, 
+  "tests/test_playlists.py::test_as_list_when_not_logged_in": true, 
+  "tests/test_playlists.py::test_delete": true, 
+  "tests/test_playlists.py::test_playlist_play": true, 
+  "tests/test_playlists.py::test_playlist_rer": true, 
+  "tests/test_playlists.py::test_refrash": true, 
+  "tests/test_utils.py::test_check_header": true
+}

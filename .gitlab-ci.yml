@@ -16,7 +16,5 @@ test:
   stage: test
   script:
    - dpkg -i deb_dist/python-mopidy-muzlab_*_all.deb
-   - mkdir -p /home/mopidy/mopidy/playlists/
-   - wget -SO /home/mopidy/mopidy/playlists/last_playlist.m3u https://muz-lab.ru/api/v1/stream/playlist_musicbox/30/
-   - cd mopidy_muzlab; pytest -v
+   - cd mopidy_muzlab/tests; pytest -v
    - scp -P22022 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /builds/root/mopidy_muzlab/deb_dist/python-mopidy-muzlab_*_all.deb repo@10.77.3.66:/home/repo/gitlab_packages/  
