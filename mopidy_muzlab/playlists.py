@@ -207,6 +207,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             return logger.warning('Can t mpd connect')
         if not entries:
             client.load('main')
+            logger.warning('Not entries, load old main playlist')
         client.repeat(repeat)
         status = client.status()
         if is_download:

@@ -48,7 +48,7 @@ def clear_playlist(client):
 def load_playlist(client, playlist='main'):
     clear_playlist(client)
     client.load(playlist)
-    clear_replays(client)
+    # clear_replays(client)
 
 def clear_replays(client):
     '''
