@@ -50,7 +50,7 @@ def load_playlist(client, playlist='main'):
     client.load(playlist)
     # clear_replays(client)
 
-def clear_replays(client):
+def clear_replays(client, clear_number=100):
     '''
         Remove repitead track from playlist
     '''
@@ -62,11 +62,12 @@ def clear_replays(client):
     playlist = client.playlistinfo()
     played = get_played_files()
     will_play = []
-    for entry in client.playlistinfo():
+    for entry in playlist:
         if int(entry['pos']) > pos:
             will_play.append(entry)
-    for entry in will_play[:100]:
-        if entry['file'].split('/')[-1][12:] in played[-100:]:
+    for entry in will_play:
+        id_ = get_rotation_id(entry['title'])
+        if id_ and id_ in played[-clear_number:]:
             client.deleteid(int(entry['id']))
 
 def clear_not_accepted(client):
@@ -91,6 +92,23 @@ def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
                 played.append(line.replace('\n', '').split('file://')[1])
         return list(set(played))
 
+def get_rotation_id(line):
+    if 'rotation_id' not in line:
+        return 0
+    rotation_id = line.replace('\n', '').split('rotation_id=')[1].split(',')[0]
+    return int(rotation_id)
+
+def get_played_rotation(log_file='/home/mopidy/mopidy/start_tracks.log'):
+    if not isfile(log_file):
+        open(log_file, 'a')
+    with open(log_file, 'r') as f:
+        readlines = f.readlines()
+        played = []
+        for n, line in enumerate(readlines):
+            if 'Start:' in line and 'file://' in line:
+                played.append(line.replace('\n', '').split('file://')[1])
+        return list(set([get_rotation_id(pl) for pl in played]))
+
 def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
     if not isfile(log_file):
         open(log_file, 'a')
@@ -101,7 +119,7 @@ def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
         line = readlines[-1]
         if 'Start:' in line and 'rotation_id=' in line:
             try:
-                return int(line.replace('\n', '').split('rotation_id=')[1].split(',')[0])
+                return get_rotation_id(line)
             except (IndexError, ValueError):
                 pass
 
@@ -110,13 +128,15 @@ def get_next_load_tracks(tracks):
     last_id = get_last_start_id()
     if last_id:
         last_track = tuple(n for n, track in enumerate(tracks) if 'rotation_id=%s' % str(last_id) in track[0])
+        logger.info('Last id: %s' % str(last_id))
+        logger.info('last_track: %s' % str(last_track))
         if last_track:
             last_track_key = last_track[0]
             next_load_tracks = tracks[last_track_key+1:] + tracks[:last_track_key+1]
     else:
-        next_load_tracks = tuple(track for track in tracks if track[1])
+        next_load_tracks = tuple(track for track in tracks if track[1] and track[0] and get_rotation_id(track[0]))
     if not next_load_tracks:
-        next_load_tracks = tracks
+        next_load_tracks = tuple(track for track in tracks if track[1] and track[0] and get_rotation_id(track[0]))
     return next_load_tracks
 
 def get_prev_track(client, degree=1):
