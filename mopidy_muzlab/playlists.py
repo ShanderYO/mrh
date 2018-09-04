@@ -12,7 +12,7 @@ from collections import deque
 from .mpd_client import new_mpd_client, load_playlist, get_next_load_tracks
 from mopidy import backend
 import urllib2
-from .utils import (concatenate_filename, check_crossfade_file, get_crossfade_file_path, 
+from .utils import (concatenate_filename, check_crossfade_file, get_crossfade_file_path, clear_replays,
                     musicbox_request_header, check_files_async, get_musicbox_id, get_entries)
 from mopidy.m3u.playlists import M3UPlaylistsProvider
 from .crossfade import Crossfade
@@ -55,7 +55,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         infile = open(path, 'r')
         readlines = infile.readlines()
         entries = get_next_load_tracks(get_entries(readlines))
-        accepted = check_files_async(entries, checked)
+        accepted = clear_replays(check_files_async(entries, checked))
         exist_files = set(tuple(e[1] for e in entries if isfile(e[1])))
         not_exists_files = set(tuple(e[1] for e in entries if not isfile(e[1])))
         if self._crossfade:

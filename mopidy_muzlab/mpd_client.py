@@ -3,6 +3,7 @@ import socket
 from os.path import isfile
 from mpd import MPDClient, CommandError
 from .repeating_timer import RepeatingTimer
+from .utils import get_rotation_id, get_played_rotation, get_next_load_tracks, get_last_start_id
 import time
 import logging
 from collections import deque
@@ -48,7 +49,7 @@ def clear_playlist(client):
 def load_playlist(client, playlist='main'):
     clear_playlist(client)
     client.load(playlist)
-    # clear_replays(client)
+    clear_replays(client)
 
 def clear_replays(client, clear_number=100):
     '''
@@ -60,7 +61,7 @@ def clear_replays(client, clear_number=100):
     except KeyError:
         return
     playlist = client.playlistinfo()
-    played = get_played_files()
+    played = get_played_rotation()
     will_play = []
     for entry in playlist:
         if int(entry['pos']) > pos:
@@ -80,64 +81,6 @@ def clear_not_accepted(client):
         if not isfile(track['file']):
             client.delete(int(track['pos']))
             # logger.info('Track %s remove from playlist' % track['file'])
-
-def get_played_files(log_file='/home/mopidy/mopidy/start_tracks.log'):
-    if not isfile(log_file):
-        open(log_file, 'a')
-    with open(log_file, 'r') as f:
-        readlines = f.readlines()
-        played = []
-        for n, line in enumerate(readlines):
-            if 'Start:' in line and 'file://' in line:
-                played.append(line.replace('\n', '').split('file://')[1])
-        return list(set(played))
-
-def get_rotation_id(line):
-    if 'rotation_id' not in line:
-        return 0
-    rotation_id = line.replace('\n', '').split('rotation_id=')[1].split(',')[0]
-    return int(rotation_id)
-
-def get_played_rotation(log_file='/home/mopidy/mopidy/start_tracks.log'):
-    if not isfile(log_file):
-        open(log_file, 'a')
-    with open(log_file, 'r') as f:
-        readlines = f.readlines()
-        played = []
-        for n, line in enumerate(readlines):
-            if 'Start:' in line and 'file://' in line:
-                played.append(line.replace('\n', '').split('file://')[1])
-        return list(set([get_rotation_id(pl) for pl in played]))
-
-def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
-    if not isfile(log_file):
-        open(log_file, 'a')
-    with open(log_file, 'r') as f:
-        readlines = f.readlines()
-        if not readlines:
-            return
-        line = readlines[-1]
-        if 'Start:' in line and 'rotation_id=' in line:
-            try:
-                return get_rotation_id(line)
-            except (IndexError, ValueError):
-                pass
-
-def get_next_load_tracks(tracks):
-    next_load_tracks = None
-    last_id = get_last_start_id()
-    if last_id:
-        last_track = tuple(n for n, track in enumerate(tracks) if 'rotation_id=%s' % str(last_id) in track[0])
-        logger.info('Last id: %s' % str(last_id))
-        logger.info('last_track: %s' % str(last_track))
-        if last_track:
-            last_track_key = last_track[0]
-            next_load_tracks = tracks[last_track_key+1:] + tracks[:last_track_key+1]
-    else:
-        next_load_tracks = tuple(track for track in tracks if track[1] and track[0] and get_rotation_id(track[0]))
-    if not next_load_tracks:
-        next_load_tracks = tuple(track for track in tracks if track[1] and track[0] and get_rotation_id(track[0]))
-    return next_load_tracks
 
 def get_prev_track(client, degree=1):
     playlistinfo = client.playlistinfo()
