@@ -52,8 +52,8 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
     def check_playlist_files(self, path, checked=[]):
         t0 = round(time.time())
         logger.info('Start check playlist %s' % path)
-        infile = open(path, 'r')
-        readlines = infile.readlines()
+        with open(path, 'r') as infile:
+            readlines = infile.readlines()
         entries = get_next_load_tracks(get_entries(readlines))
         accepted = clear_replays(check_files_async(entries, checked))
         exist_files = set(tuple(e[1] for e in entries if isfile(e[1])))

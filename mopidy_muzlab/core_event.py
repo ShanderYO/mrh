@@ -46,12 +46,16 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         try:
             name = tl_track.track.name.decode('utf-8')
         except UnicodeEncodeError:
-            name = '-'
+            logger.error('Can t decode track title. Track will be skipped')
+            self.core.playback.next()
+            return
         try:
             uri = tl_track.track.uri.decode('utf-8')
         except UnicodeEncodeError:
-            uri = '-'
-        start = 'Start: %s %s' % (name, uri)
+            logger.error('Can t decode track uri. Track will be skipped')
+            self.core.playback.next()
+            return
+        start = '%s - Start: %s %s' % (dt.now().strftime('%Y-%m-%d %H:%M:%S'), name, uri)
         logger.info(start)
         add_row_to_file(start, self._start_tracks_log)
         if self._crossfade:
