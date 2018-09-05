@@ -30,7 +30,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
 
         ext_config = config['muzlab']
         self._video_control = ext_config['video_control']
-        self._refresh_playlists_rate = 300
+        self._refresh_playlists_rate = 900
         self._refresh_playlists_timer = None
         self._playlist_lock = Lock()
         self._observer_lock = Lock()
@@ -97,7 +97,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                     pos__ = self.playback.get_time_position()
                     if pos_ != pos__:
                         return
-                    load_playlist(client)
+                    load_playlist()
                     client.play()
                     time.sleep(0.2)
                     if pos__ != self.playback.get_time_position():

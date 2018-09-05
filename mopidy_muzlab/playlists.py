@@ -218,13 +218,13 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
                 checked = [i[1] for i in accepted]
                 accepted, not_exists, entries = self.check_playlist_files(self.last_playlist, checked=checked)
             self.create_playlist_file(accepted)
-            client = new_mpd_client()
             try:
-                load_playlist(client)
+                load_playlist()
             except Exception as es:
                 return logger.error(es)
         try:
             if status['state'] != 'play' or status['time'] == '0:0':
+                client = new_mpd_client()
                 client.play()
         except Exception as es:
             logger.error(es)

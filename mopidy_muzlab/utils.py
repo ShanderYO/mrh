@@ -87,8 +87,8 @@ def get_next_load_tracks(tracks):
     last_id = get_last_start_id()
     if last_id:
         last_track = tuple(n for n, track in enumerate(tracks) if 'rotation_id=%s' % str(last_id) in track[0])
-        logger.info('Last id: %s' % str(last_id))
-        logger.info('last_track: %s' % str(last_track))
+        # logger.info('Last id: %s' % str(last_id))
+        # logger.info('last_track: %s' % str(last_track))
         if last_track:
             last_track_key = last_track[0]
             next_load_tracks = tracks[last_track_key+1:] + tracks[:last_track_key+1]
@@ -195,7 +195,7 @@ def musicbox_request_header():
     md5.update((''.join([socket.gethostname(), serial, MUSIC_BOX_API_SALT])).encode())
     return {'musicbox-token': md5.hexdigest(), 'serial': serial}
 
-def clear_replays(entryes, clear_number=100):
+def clear_replays(entryes, clear_number=30):
     '''
         Remove repitead track from playlist
     '''
