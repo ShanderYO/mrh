@@ -13,5 +13,9 @@
   "test_playlists.py::test_create", 
   "test_playlists.py::test_lookup_valid", 
   "test_playlists.py::test_lookup_invalid", 
-  "test_utils.py::test_check_files_async"
+  "test_repeating_timer.py::ExtensionTest::test_init", 
+  "test_repeating_timer.py::ExtensionTest::test_stop", 
+  "test_utils.py::test_check_files_async", 
+  "test_utils.py::test_get_musicbox_id", 
+  "test_utils.py::test_get_rotation_id"
 ]

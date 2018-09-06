@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 
 def new_mpd_client():
     client = MPDClient()
-    client.timeout = 180
-    client.idletimeout = 240
+    client.timeout = 60
+    client.idletimeout = 30
     c = 0
     while True:
         try:
-            client.connect(mpd_host, mpd_port)
+            client.connect(mpd_host, mpd_port, timeout=60)
             client.currentsong()
             break
         except Exception as es:
@@ -31,11 +31,19 @@ def new_mpd_client():
             break
     return client
 
-def clear_playlist():
+def mpd_connect(fn):
+    def wrapped(*args, **kwargs):
+        client = new_mpd_client()
+        result = fn(client, *args, **kwargs)
+        client.disconnect()
+        return result
+    return wrapped
+
+@mpd_connect
+def clear_playlist(client):
     '''
         Remove all track of current playlist expect current track
     '''
-    client = new_mpd_client()
     while True:
         status = client.status()
         try:
@@ -46,6 +54,7 @@ def clear_playlist():
             client.delete(i)
         except CommandError:
             break
+    logger.info('Playlist was cleared')
 
 def load_playlist(playlist='main'):
     clear_playlist()
@@ -53,34 +62,40 @@ def load_playlist(playlist='main'):
     client.load(playlist)
     clear_replays()
 
-def clear_replays(clear_number=30):
+@mpd_connect
+def clear_replays(client, clear_number=30):
     '''
         Remove repitead track from playlist
     '''
-    client = new_mpd_client()
+
     status = client.status()
     try:
         pos = int(status['song'])
     except KeyError:
-        return
+        pos = 0
+    logger.info('Start cleared replays')
+    try:
+        current_rotation = get_rotation_id(client.currentsong()['title'])
+    except KeyError:
+        current_rotation = None
     playlist = client.playlistinfo()
     played = get_played_rotation()[-clear_number:]
-    will_play = []
+    played.append(current_rotation)
     for entry in playlist:
-        if int(entry['pos']) > pos:
-            will_play.append(entry)
-    for entry in will_play:
+        if int(entry['pos']) <= pos:
+            continue
         id_ = get_rotation_id(entry['title'])
         if id_ and id_ in played:
             client.deleteid(int(entry['id']))
         else:
             played.append(id_)
+    logger.info('Playlist was checked on replays and cleared')
 
-def clear_not_accepted():
+@mpd_connect
+def clear_not_accepted(client):
     '''
         Remove track with no files
     '''
-    client = new_mpd_client()
     tracks = client.playlistinfo()
     tracks.sort(key=lambda i:int(i['pos']), reverse=True)
     for track in tracks:
@@ -88,12 +103,14 @@ def clear_not_accepted():
             client.delete(int(track['pos']))
             # logger.info('Track %s remove from playlist' % track['file'])
 
+@mpd_connect
 def get_prev_track(client, degree=1):
     playlistinfo = client.playlistinfo()
     currentsong = client.currentsong()
     if playlistinfo and currentsong and (int(currentsong['pos'])-degree) >= 0:
         return [s for s in playlistinfo if int(s['pos']) == int(currentsong['pos'])-degree][0]
 
+@mpd_connect
 def get_next_track(client, degree=1):
     currentsong = client.currentsong()
     playlistinfo = client.playlistinfo()

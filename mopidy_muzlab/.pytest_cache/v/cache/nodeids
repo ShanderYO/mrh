@@ -13,5 +13,7 @@
   "tests/test_playlists.py::test_create", 
   "tests/test_playlists.py::test_lookup_valid", 
   "tests/test_playlists.py::test_lookup_invalid", 
+  "tests/test_repeating_timer.py::ExtensionTest::test_init", 
+  "tests/test_repeating_timer.py::ExtensionTest::test_stop", 
   "tests/test_utils.py::test_check_files_async"
 ]

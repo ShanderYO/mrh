@@ -32,8 +32,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
 
     def track_playback_ended(self, tl_track, tl_previous, time_position):
         if self._crossfade:
-            client = new_mpd_client()
-            prev = get_prev_track(client, 2)
+            prev = get_prev_track(degree=2)
             if prev:
                 path = prev['file'].replace('file://', '')
                 logger.info('Remove: %s' % path)
@@ -59,9 +58,8 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         logger.info(start)
         add_row_to_file(start, self._start_tracks_log)
         if self._crossfade:
-            client = new_mpd_client()
             for i in range(1, 4):
-                next_ = get_next_track(client, i)
+                next_ = get_next_track(i)
                 if not next_:
                     return
                 cross_file = next_['file'].replace('file://', '')

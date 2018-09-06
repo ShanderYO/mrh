@@ -221,12 +221,12 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
             try:
                 load_playlist()
             except Exception as es:
-                return logger.error(es)
+                return logger.error('Error in process load_playlist: %s' % es)
         try:
             if status['state'] != 'play' or status['time'] == '0:0':
                 client = new_mpd_client()
                 client.play()
         except Exception as es:
-            logger.error(es)
+            logger.error('Error in process play at the end of refresh: %s' % es)
         self.sync_tracks(not_exists)
 
