@@ -4,7 +4,7 @@ from os.path import join, dirname
 import logging
 from mopidy import config, ext
 
-__version__ = '0.7.4'
+__version__ = '0.7.6'
 
 logger = logging.getLogger(__name__)
 

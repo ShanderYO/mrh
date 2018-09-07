@@ -68,27 +68,34 @@ def clear_replays(client, clear_number=30):
         Remove repitead track from playlist
     '''
 
+    logger.info('Start cleared replays')
     status = client.status()
+    playlist = client.playlistinfo()
     try:
         pos = int(status['song'])
     except KeyError:
         pos = 0
-    logger.info('Start cleared replays')
+    
     try:
         current_rotation = get_rotation_id(client.currentsong()['title'])
     except KeyError:
         current_rotation = None
-    playlist = client.playlistinfo()
     played = get_played_rotation()[-clear_number:]
     played.append(current_rotation)
+    delete_ids = []
     for entry in playlist:
         if int(entry['pos']) <= pos:
             continue
         id_ = get_rotation_id(entry['title'])
         if id_ and id_ in played:
-            client.deleteid(int(entry['id']))
+            try:
+                delete_ids.append(int(entry['id']))
+            except CommandError:
+                pass
         else:
             played.append(id_)
+    client = new_mpd_client()
+    [client.deleteid(i) for i in delete_ids]
     logger.info('Playlist was checked on replays and cleared')
 
 @mpd_connect
