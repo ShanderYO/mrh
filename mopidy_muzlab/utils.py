@@ -1,6 +1,7 @@
 from os import stat, walk, remove
 from os.path import isfile, join
 import fnmatch
+import requests
 import sys
 import shlex
 import logging
@@ -206,6 +207,21 @@ def clear_replays(entryes, clear_number=30):
         if id_ and id_ not in played[-clear_number:]:
             result.append(entry)
     return result
+
+def send_states(uri, states):
+	try:
+		r = requests.put(uri, data=states, headers=musicbox_request_header(), stream=True, timeout=(5, 60))
+	except requests.exceptions.ReadTimeout:
+		return logger.error('Error Read timeout occured')
+	except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:
+		return logger.error('Error Connection timeout occured')
+	except requests.exceptions.ConnectionError:
+		return logger.error('Connection error')
+	except Exception as es:
+		return logger.error(es)
+
+	if r.status_code == 200:
+		return r.json()
 
 
 

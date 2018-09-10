@@ -9,7 +9,7 @@ import pykka
 from .mpd_client import new_mpd_client, load_playlist, get_prev_track, get_next_track
 from .crossfade import Crossfade
 from .repeating_timer import RepeatingTimer
-from .utils import get_duration, add_row_to_file
+from .utils import get_duration, add_row_to_file, send_states, get_musicbox_id, get_rotation_id
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
         self._playlist = ext_config['playlist']
         self._crossfade = ext_config['crossfade']
         self._start_tracks_log = ext_config['start_tracks_log']
+        self._state_uri = 'https://muz-lab.ru/api/v1/stream/musicbox/%s/send_states/' % get_musicbox_id()
         self.core = core
 
     def gstreamer_error(self, error_msg, debug_msg):
@@ -55,8 +56,10 @@ class MuzlabCoreEvent(pykka.ThreadingActor, core.CoreListener):
             self.core.playback.next()
             return
         start = '%s - Start: %s %s' % (dt.now().strftime('%Y-%m-%d %H:%M:%S'), name, uri)
+        current_rotation = get_rotation_id(name)
         logger.info(start)
         add_row_to_file(start, self._start_tracks_log)
+        send_states(self._state_uri, dict(current_rotation=current_rotation))
         if self._crossfade:
             for i in range(1, 4):
                 next_ = get_next_track(i)

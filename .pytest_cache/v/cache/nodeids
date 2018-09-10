@@ -1,0 +1,17 @@
+[
+  "mopidy_muzlab/tests/test_extension.py::test_init_backend", 
+  "mopidy_muzlab/tests/test_extension.py::test_backend_start", 
+  "mopidy_muzlab/tests/test_extension.py::test_backend_stop", 
+  "mopidy_muzlab/tests/test_extension.py::test_init_frontend", 
+  "mopidy_muzlab/tests/test_extension.py::test_frontend_start", 
+  "mopidy_muzlab/tests/test_extension.py::test_frontend_stop", 
+  "mopidy_muzlab/tests/test_playlists.py::test_playlist_exists", 
+  "mopidy_muzlab/tests/test_playlists.py::test_playlist_format", 
+  "mopidy_muzlab/tests/test_playlists.py::test_playlist_length", 
+  "mopidy_muzlab/tests/test_playlists.py::test_is_a_playlists_provider", 
+  "mopidy_muzlab/tests/test_playlists.py::test_get_items", 
+  "mopidy_muzlab/tests/test_playlists.py::test_create", 
+  "mopidy_muzlab/tests/test_playlists.py::test_lookup_valid", 
+  "mopidy_muzlab/tests/test_playlists.py::test_lookup_invalid", 
+  "mopidy_muzlab/tests/test_utils.py::test_check_files_async"
+]

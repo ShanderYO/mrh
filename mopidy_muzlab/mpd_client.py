@@ -1,19 +1,60 @@
 # -*- coding: utf-8 -*-
 import socket
 from os.path import isfile
-from mpd import MPDClient, CommandError
+from mpd import MPDClient, CommandError, _NotConnected, ConnectionError
 from .repeating_timer import RepeatingTimer
 from .utils import get_rotation_id, get_played_rotation, get_next_load_tracks, get_last_start_id
 import time
 import logging
+import warnings
 from collections import deque
 mpd_host = '127.0.0.1'
 mpd_port = 6600
 
 logger = logging.getLogger(__name__)
 
+
+class NewMPDClient(MPDClient):
+
+    def connect(self, host, port, timeout=None):
+        logger.debug("Calling MPD connect(%r, %r, timeout=%r)", host,
+                    port, timeout)
+        if self._sock is not None:
+            raise ConnectionError("Already connected")
+        if timeout is not None:
+            warnings.warn("The timeout parameter in connect() is deprecated! "
+                          "Use MPDClient.timeout = yourtimeout instead.",
+                          DeprecationWarning)
+            self.timeout = timeout
+        if host.startswith("/"):
+            self._sock = self._connect_unix(host)
+        else:
+            self._sock = self._connect_tcp(host, port)
+
+        self._rfile = self._sock.makefile("r")
+        self._wfile = self._sock.makefile("w")
+
+        try:
+            self._hello()
+        except:
+            self.disconnect()
+            raise
+
+    def disconnect(self):
+        logger.debug("Calling MPD disconnect()")
+        if (self._rfile is not None
+                and not isinstance(self._rfile, _NotConnected)):
+            self._rfile.close()
+        if (self._wfile is not None
+                and not isinstance(self._wfile, _NotConnected)):
+            self._wfile.close()
+        if self._sock is not None:
+            self._sock.close()
+        self._reset()
+
+
 def new_mpd_client():
-    client = MPDClient()
+    client = NewMPDClient()
     client.timeout = 60
     client.idletimeout = 30
     c = 0
@@ -69,8 +110,15 @@ def clear_replays(client, clear_number=30):
     '''
 
     logger.info('Start cleared replays')
-    status = client.status()
-    playlist = client.playlistinfo()
+    try:
+        status = client.status()
+        playlist = client.playlistinfo()
+    except:
+        return
+
+    if not playlist:
+        return
+
     try:
         pos = int(status['song'])
     except KeyError:
@@ -88,14 +136,15 @@ def clear_replays(client, clear_number=30):
             continue
         id_ = get_rotation_id(entry['title'])
         if id_ and id_ in played:
-            try:
-                delete_ids.append(int(entry['id']))
-            except CommandError:
-                pass
+            delete_ids.append(int(entry['id']))
         else:
             played.append(id_)
     client = new_mpd_client()
-    [client.deleteid(i) for i in delete_ids]
+    for i in delete_ids:
+        try:
+            client.deleteid(i)
+        except CommandError:
+            pass
     logger.info('Playlist was checked on replays and cleared')
 
 @mpd_connect

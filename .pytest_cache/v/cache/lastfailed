@@ -1,0 +1,5 @@
+{
+  "tests/conftest.py::test_playlist_exists": true, 
+  "tests/playlists.py": true, 
+  "tests/test_playlists.py::test_playlist_exists": true
+}

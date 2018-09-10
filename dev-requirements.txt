@@ -1,0 +1,24 @@
+# Automate tasks
+invoke
+
+# Check code style, errors, etc
+flake8
+flake8-import-order
+
+# Mock dependencies in tests
+mock
+responses
+
+# Test runners
+pytest<3.3.0
+pytest-capturelog
+pytest-cov
+pytest-xdist
+mock
+tox
+
+# Check that MANIFEST.in matches Git repo contents before making a release
+check-manifest
+
+# To make wheel packages
+wheel
