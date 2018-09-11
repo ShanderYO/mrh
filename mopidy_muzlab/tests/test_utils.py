@@ -31,9 +31,9 @@ def test_get_next_load_tracks(entries, start_tracks_log_path):
 	next_ = get_next_load_tracks(entries, log_file=start_tracks_log_path)
 	assert next_ and type(next_) is tuple
 
-def test_check_header(entries):
-	accepted = [e for e in entries[:10] if check_header(e[1])]
-	assert len(accepted) == 10
+# def test_check_header(entries):
+# 	accepted = [e for e in entries[:10] if check_header(e[1])]
+# 	assert len(accepted) == 10
 
 def test_clear_replays(fake_entries, start_tracks_log_path):
 	entries = fake_entries*2

@@ -13,5 +13,14 @@
   "mopidy_muzlab/tests/test_playlists.py::test_create", 
   "mopidy_muzlab/tests/test_playlists.py::test_lookup_valid", 
   "mopidy_muzlab/tests/test_playlists.py::test_lookup_invalid", 
-  "mopidy_muzlab/tests/test_utils.py::test_check_files_async"
+  "mopidy_muzlab/tests/test_repeating_timer.py::ExtensionTest::test_init", 
+  "mopidy_muzlab/tests/test_repeating_timer.py::ExtensionTest::test_stop", 
+  "mopidy_muzlab/tests/test_utils.py::test_check_files_async", 
+  "mopidy_muzlab/tests/test_utils.py::test_get_musicbox_id", 
+  "mopidy_muzlab/tests/test_utils.py::test_get_rotation_id", 
+  "mopidy_muzlab/tests/test_utils.py::test_get_played_rotation", 
+  "mopidy_muzlab/tests/test_utils.py::test_get_last_start_id", 
+  "mopidy_muzlab/tests/test_utils.py::test_get_next_load_tracks", 
+  "mopidy_muzlab/tests/test_utils.py::test_check_header", 
+  "mopidy_muzlab/tests/test_utils.py::test_clear_replays"
 ]
