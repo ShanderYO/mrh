@@ -3,8 +3,9 @@ from __future__ import unicode_literals
 from os.path import join, dirname
 import logging
 from mopidy import config, ext
+from .utils import get_musicbox_id, send_states
 
-__version__ = '0.7.8'
+__version__ = '0.7.9'
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class MuzlabExtension(ext.Extension):
 
     dist_name = 'Mopidy-Muzlab'
     ext_name = 'muzlab'
+    _state_uri = 'https://muz-lab.ru/api/v1/stream/musicbox/%s/send_states/' % get_musicbox_id()
     version = __version__
 
     def get_default_config(self):
@@ -40,3 +42,6 @@ class MuzlabExtension(ext.Extension):
         registry.add('backend', MuzlabBackend)
         registry.add('frontend', MuzlabCoreEvent)
         logger.info('Starting Mopidy-Muzlab %s' % self.version)
+        send_states(self._state_uri, dict(current_version=self.version))
+
+

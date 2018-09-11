@@ -52,15 +52,14 @@ class NewMPDClient(MPDClient):
             self._sock.close()
         self._reset()
 
-
 def new_mpd_client():
     client = NewMPDClient()
-    client.timeout = 60
-    client.idletimeout = 30
+    client.timeout = 120
+    client.idletimeout = 180
     c = 0
     while True:
         try:
-            client.connect(mpd_host, mpd_port, timeout=60)
+            client.connect(mpd_host, mpd_port, timeout=120)
             client.currentsong()
             break
         except Exception as es:
@@ -94,7 +93,8 @@ def clear_playlist(client):
         try:
             client.delete(i)
         except CommandError:
-            break
+            client = new_mpd_client()
+            client.delete(i)
     logger.info('Playlist was cleared')
 
 def load_playlist(playlist='main'):
@@ -118,12 +118,10 @@ def clear_replays(client, clear_number=30):
 
     if not playlist:
         return
-
     try:
         pos = int(status['song'])
     except KeyError:
         pos = 0
-    
     try:
         current_rotation = get_rotation_id(client.currentsong()['title'])
     except KeyError:

@@ -83,9 +83,9 @@ def get_last_start_id(log_file='/home/mopidy/mopidy/start_tracks.log'):
             except (IndexError, ValueError):
                 pass
 
-def get_next_load_tracks(tracks):
+def get_next_load_tracks(tracks, log_file='/home/mopidy/mopidy/start_tracks.log'):
     next_load_tracks = None
-    last_id = get_last_start_id()
+    last_id = get_last_start_id(log_file=log_file)
     if last_id:
         last_track = tuple(n for n, track in enumerate(tracks) if 'rotation_id=%s' % str(last_id) in track[0])
         # logger.info('Last id: %s' % str(last_id))
@@ -196,16 +196,18 @@ def musicbox_request_header():
     md5.update((''.join([socket.gethostname(), serial, MUSIC_BOX_API_SALT])).encode())
     return {'musicbox-token': md5.hexdigest(), 'serial': serial}
 
-def clear_replays(entryes, clear_number=30):
+def clear_replays(entryes, clear_number=30, log_file='/home/mopidy/mopidy/start_tracks.log'):
     '''
         Remove repitead track from playlist
     '''
     result = []
-    played = get_played_rotation()
+    played = get_played_rotation(log_file=log_file)
+    banned = played[-clear_number:]
     for entry in entryes:
         id_ = get_rotation_id(entry[0])
-        if id_ and id_ not in played[-clear_number:]:
+        if id_ and id_ not in banned:
             result.append(entry)
+            banned.append(id_)
     return result
 
 def send_states(uri, states):

@@ -18,7 +18,7 @@ from mopidy_muzlab.mpd_client import new_mpd_client, load_playlist
 from faker import Faker
 
 @pytest.fixture
-def config_mock(tmpdir):
+def fake_config(tmpdir):
     return {
         'core': {
             'cache_dir': '%s' % tmpdir.join('cache'),
@@ -45,20 +45,44 @@ def config_mock(tmpdir):
 		},
     }
 
-@pytest.fixture
-def entries_mock(playlist_mock):
-    entries_mock = get_entries(playlist_mock)
-    return entries_mock
 
 @pytest.fixture
-def playlist_mock():
+def start_tracks_log_path():
+    return 'playlists/start_tracks.log'
+
+@pytest.fixture
+def playlist():
     infile = open('playlists/last_playlist.m3u', 'r')
-    playlist_mock = infile.readlines()
-    playlist_mock = [line for line in playlist_mock if line and line != '\n']
-    return playlist_mock
+    playlist = infile.readlines()
+    playlist = [line for line in playlist if line and line != '\n']
+    return playlist
 
 @pytest.fixture
-def fake_entries_mock():
+def entries(playlist):
+    entries = get_entries(playlist)
+    return entries
+
+@pytest.fixture
+def fake_start_tracks(start_tracks_log_path):
+    infile = open(start_tracks_log_path, 'r')
+    result = infile.readlines()
+    result = [line for line in result if line and line != '\n' and 'Start' in line and 'rotation_id=' in line]
+    return result
+
+@pytest.fixture
+def fake_last_start_id(fake_start_tracks):
+    last = fake_start_tracks[-1]
+    return int(last.split('rotation_id=')[1].split(',')[0])
+
+@pytest.fixture
+def fake_played(fake_start_tracks):
+    played = []
+    for line in fake_start_tracks:
+        if line and line != '\n' and 'Start' in line and 'rotation_id=' in line:
+            played.append(int(line.split('rotation_id=')[1].split(',')[0]))
+
+@pytest.fixture
+def fake_entries():
     faker = Faker()
     entries = []
     for i in range(300):
@@ -77,22 +101,22 @@ def fake_entries_mock():
     return entries
 
 @pytest.fixture
-def backend_mock(config_mock):
-    backend_mock = mock.Mock(spec=MuzlabBackend)
-    backend_mock._config = config_mock
-    return backend_mock
+def fake_backend(fake_config):
+    backend = mock.Mock(spec=MuzlabBackend)
+    backend._config = fake_config
+    return backend
 
 @pytest.fixture
-def frontend_mock(config_mock):
-    frontend_mock = mock.Mock(spec=MuzlabCoreEvent)
-    frontend_mock._config = config_mock
-    return frontend_mock
+def fake_frontend(fake_config):
+    frontend = mock.Mock(spec=MuzlabCoreEvent)
+    frontend._config = fake_config
+    return frontend
 
 @pytest.fixture
-def provider_mock(backend_mock, config_mock, entries_mock):
-    provider_mock = MuzlabPlaylistsProvider(backend_mock, config_mock)
-    tracks = [Track(uri=track[1], name=track[0]) for track in entries_mock]
+def fake_provider(fake_backend, fake_config, entries):
+    provider = MuzlabPlaylistsProvider(fake_backend, fake_config)
+    tracks = [Track(uri=track[1], name=track[0]) for track in entries]
     playlist = {'m3u:last_playlist.m3u':Playlist(uri='m3u:last_playlist.m3u', name='last_playlist', tracks=tracks)}
-    provider_mock._playlist = playlist
-    return provider_mock
+    provider._playlist = playlist
+    return provider
 
