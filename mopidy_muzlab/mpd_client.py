@@ -92,9 +92,11 @@ def clear_playlist(client):
             break
         try:
             client.delete(i)
-        except CommandError:
+        except ConnectionError:
             client = new_mpd_client()
             client.delete(i)
+        except CommandError:
+            pass
     logger.info('Playlist was cleared')
 
 def load_playlist(playlist='main'):
@@ -115,7 +117,6 @@ def clear_replays(client, clear_number=30):
         playlist = client.playlistinfo()
     except:
         return
-
     if not playlist:
         return
     try:
@@ -140,6 +141,9 @@ def clear_replays(client, clear_number=30):
     client = new_mpd_client()
     for i in delete_ids:
         try:
+            client.deleteid(i)
+        except ConnectionError:
+            client = new_mpd_client()
             client.deleteid(i)
         except CommandError:
             pass

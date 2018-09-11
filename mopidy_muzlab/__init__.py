@@ -5,7 +5,7 @@ import logging
 from mopidy import config, ext
 from .utils import get_musicbox_id, send_states
 
-__version__ = '0.7.9'
+__version__ = '0.7.10'
 
 logger = logging.getLogger(__name__)
 
