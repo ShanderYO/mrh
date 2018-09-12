@@ -21,6 +21,5 @@
   "test_utils.py::test_get_played_rotation", 
   "test_utils.py::test_get_last_start_id", 
   "test_utils.py::test_get_next_load_tracks", 
-  "test_utils.py::test_check_header", 
   "test_utils.py::test_clear_replays"
 ]

@@ -52,10 +52,11 @@ class NewMPDClient(MPDClient):
             self._sock.close()
         self._reset()
 
+
 def new_mpd_client():
     client = NewMPDClient()
     client.timeout = 120
-    client.idletimeout = 180
+    client.idletimeout = 120
     c = 0
     while True:
         try:
@@ -66,7 +67,6 @@ def new_mpd_client():
             logger.warning(es)
             c += 1
             time.sleep(1)
-
         if c >= 5:
             break
     return client
@@ -91,12 +91,13 @@ def clear_playlist(client):
         except KeyError:
             break
         try:
-            client.delete(i)
-        except ConnectionError:
-            client = new_mpd_client()
-            client.delete(i)
+            try:
+                client.delete(i)
+            except ConnectionError:
+                client = new_mpd_client()
+                client.delete(i)
         except CommandError:
-            pass
+            break
     logger.info('Playlist was cleared')
 
 def load_playlist(playlist='main'):
@@ -117,12 +118,15 @@ def clear_replays(client, clear_number=30):
         playlist = client.playlistinfo()
     except:
         return
+
     if not playlist:
         return
+
     try:
         pos = int(status['song'])
     except KeyError:
         pos = 0
+    
     try:
         current_rotation = get_rotation_id(client.currentsong()['title'])
     except KeyError:
@@ -141,12 +145,13 @@ def clear_replays(client, clear_number=30):
     client = new_mpd_client()
     for i in delete_ids:
         try:
-            client.deleteid(i)
-        except ConnectionError:
-            client = new_mpd_client()
-            client.deleteid(i)
+            try:
+                client.deleteid(i)
+            except ConnectionError:
+                client = new_mpd_client()
+                client.deleteid(i)
         except CommandError:
-            pass
+            break
     logger.info('Playlist was checked on replays and cleared')
 
 @mpd_connect

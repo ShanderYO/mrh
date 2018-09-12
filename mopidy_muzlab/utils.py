@@ -212,7 +212,7 @@ def clear_replays(entryes, clear_number=30, log_file='/home/mopidy/mopidy/start_
 
 def send_states(uri, states):
 	try:
-		r = requests.put(uri, data=states, headers=musicbox_request_header(), stream=True, timeout=(5, 60))
+		r = requests.put(uri, data=states, headers=musicbox_request_header(), stream=True, timeout=(5, 180))
 	except requests.exceptions.ReadTimeout:
 		return logger.error('Error Read timeout occured')
 	except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:

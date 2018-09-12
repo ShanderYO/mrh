@@ -178,7 +178,7 @@ class MuzlabPlaylistsProvider(M3UPlaylistsProvider):
         logger.info('Download playlist !!!')
         logger.info(self._playlist_uri)
         try:
-            r = requests.get(self._playlist_uri, headers=musicbox_request_header(), stream=True, timeout=(5, 60))
+            r = requests.get(self._playlist_uri, headers=musicbox_request_header(), stream=True, timeout=(10, 180))
         except requests.exceptions.ReadTimeout:
             return logger.error('Error Read timeout occured')
         except requests.exceptions.ConnectTimeout, requests.exceptions.Timeout:
