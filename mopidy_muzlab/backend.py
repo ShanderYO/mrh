@@ -123,7 +123,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         with self._omxplayer_observer_lock:
             # logger.info('Start omxplayer_observer')
             ps = subprocess.Popen(['ps', '-aux'],stdout=subprocess.PIPE)
-            proc = [p for p in ps.stdout.readlines() if '/usr/bin/omxplayer.bin' in p]
+            proc = [p for p in ps.stdout.readlines() if '/usr/bin/omxplayer' in p.decode('utf-8')]
             mp4 = ''
             if not proc and self._pause == True:
                 self.resume()
@@ -134,16 +134,16 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                     pass
             else:
                 try:
-                    mp4 = '/home/files/%s' % proc[0].split('/home/files/')[1].split('\n')[0]
+                    mp4 = '/home/files/media/%s' % proc[0].split('media/')[1].split('\n')[0]
                 except (KeyError, IndexError):
                     pass
             mp4 = mp4.split()[0] if mp4 else ''
             if not isfile(mp4) and self._pause == True:
                 self.resume()
             info = subprocess.Popen(['ffprobe', '-i', mp4], stdout=subprocess.PIPE,
-                                                         stdin=subprocess.PIPE, 
+                                                         stdin=subprocess.PIPE,
                                                          stderr=subprocess.PIPE).stderr.read()
-            if 'Audio' in info and self._pause == False: 
+            if 'Audio' in info and self._pause == False:
                 self.pause()
             elif 'Audio' not in info and self._pause == True:
                 self.resume()

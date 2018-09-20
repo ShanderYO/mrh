@@ -40,7 +40,7 @@ def get_file_name(entry):
 	return entry[1].replace('\n', '')
 
 def get_musicbox_id():
-	return re.sub(r'[\D]+', r'', socket.gethostname())
+	return re.sub(r'[\D]+', r'', socket.gethostname()) or '0'
 
 def probe_file(filename):
     cmnd = ['ffprobe', '-show_format', '-pretty', '-loglevel', 'quiet', filename]
