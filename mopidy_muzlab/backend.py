@@ -129,7 +129,7 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                 self.resume()
             if len(proc) > 1:
                 try:
-                    mp4 = '/home/files/%s' % proc[0].split('/home/files/')[1].split()[0]
+                    mp4 = '/home/files/media/%s' % proc[0].split('media/')[1].split()[0]
                 except (KeyError, IndexError):
                     pass
             else:
