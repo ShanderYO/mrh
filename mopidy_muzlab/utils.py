@@ -222,8 +222,8 @@ def send_states(uri, states):
 	except Exception as es:
 		return logger.error(es)
 
-	if r.status_code == 200:
-		return r.json()
+	#if r.status_code == 200:
+	#	return r.json()
 
 
 
