@@ -57,10 +57,10 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
             self._refresh_playlists,
             self._refresh_playlists_rate)
         self._refresh_playlists_timer.start()
-        self._observer_timer = RepeatingTimer(
-            self._observer,
-            self._observer_rate)
-        self._observer_timer.start()
+        #self._observer_timer = RepeatingTimer(
+        #    self._observer,
+        #    self._observer_rate)
+        #self._observer_timer.start()
 
     def on_stop(self):
         if self._video_control:
@@ -74,11 +74,11 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
         except:
             pass
         self._refresh_playlists_timer = None
-        try:
-            self._observer_timer.cancel()
-        except:
-            pass
-        self._observer_timer = None
+        #try:
+        #    self._observer_timer.cancel()
+        #except:
+        #    pass
+        #self._observer_timer = None
 
     def _observer(self):
         with self._observer_lock:
@@ -133,10 +133,11 @@ class MuzlabBackend(pykka.ThreadingActor, backend.Backend):
                 except (KeyError, IndexError):
                     pass
             else:
-                try:
-                    mp4 = '/home/files/media/%s' % proc[0].split('media/')[1].split('\n')[0]
-                except (KeyError, IndexError):
-                    pass
+                pass
+                #try:
+                #    mp4 = '/home/files/media/%s' % proc[0].split('media/')[1].split('\n')[0]
+                #except (KeyError, IndexError):
+                #    pass
             mp4 = mp4.split()[0] if mp4 else ''
             if not isfile(mp4) and self._pause == True:
                 self.resume()
